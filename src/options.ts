@@ -7,13 +7,13 @@ const app = document.querySelector<HTMLDivElement>("#app")!;
 app.innerHTML = `<main>
   <p class="eyebrow">ENGLISH GARDEN · <span class="extension-version"></span></p>
   <h1>扩展设置</h1>
-  <p>扩展需要连接本机的 <strong>API 服务</strong>，不是浏览器中的学习客户端。模型和 YouTube 密钥请在学习客户端中配置。</p>
-  <div class="address-guide"><span>扩展 API</span><code>http://127.0.0.1:3789</code><span>学习客户端</span><code>http://127.0.0.1:5173</code></div>
+  <p>扩展需要连接本机的 <strong>API 服务</strong>：打开 English Garden macOS App，设置页里的“后台服务”会自动监听。大模型 API Key 也在 App 的设置页配置。</p>
+  <div class="address-guide"><span>扩展 API</span><code>http://127.0.0.1:3789</code></div>
   <form>
-    <label>本地 API 服务地址<input type="url" required spellcheck="false"><small>默认端口是 <strong>3789</strong>。端口 5173 只能用于打开学习客户端。</small></label>
+    <label>本地 API 服务地址<input type="url" required spellcheck="false"><small>默认端口是 <strong>3789</strong>，要和 App 设置页显示的那个地址保持一致。</small></label>
     <div class="actions"><button>测试连接并保存</button><span class="status"></span></div>
   </form>
-  <section><h2>启动顺序</h2><ol><li>在项目目录运行 <code>pnpm dev</code></li><li>用浏览器打开 <code>http://127.0.0.1:5173</code> 使用学习客户端</li><li>扩展保持连接 <code>http://127.0.0.1:3789</code></li><li>选择网页英文，点击绿色“译”按钮</li></ol></section>
+  <section><h2>启动顺序</h2><ol><li>打开 macOS App，设置页显示“监听中”即可</li><li>点上面的“测试连接并保存”，确认地址是 <code>http://127.0.0.1:3789</code></li><li>选中网页里的英文，点绿色“译”按钮，再点“收藏”写进本机词库</li></ol></section>
 </main>`;
 const input = app.querySelector<HTMLInputElement>("input")!;
 app.querySelector<HTMLElement>(".extension-version")!.textContent = `v${chrome.runtime.getManifest().version}`;

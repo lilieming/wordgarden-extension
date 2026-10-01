@@ -1,7 +1,7 @@
 import { defineConfig } from "vite";
 import { resolve } from "node:path";
 import { cpSync } from "node:fs";
-import { wrapExtensionChunk } from "./build-scope";
+import { finalizeChunk } from "./build-scope";
 
 export default defineConfig({
   build: {
@@ -22,7 +22,9 @@ export default defineConfig({
       name: "scope-extension-scripts",
       generateBundle(_options, bundle) {
         for (const output of Object.values(bundle)) {
-          if (output.type === "chunk") output.code = wrapExtensionChunk(output.code);
+          if (output.type === "chunk") {
+            output.code = finalizeChunk({ fileName: output.fileName, isEntry: output.isEntry }, output.code);
+          }
         }
       }
     },

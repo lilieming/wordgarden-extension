@@ -21,3 +21,4 @@ describe("parseApiResponse", () => {
     await expect(result).rejects.toMatchObject({ code: "NOPE", message: "broken" });
   });
 });
+

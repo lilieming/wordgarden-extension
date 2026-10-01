@@ -39,7 +39,6 @@ chrome.runtime.onMessage.addListener((message: BackgroundRequest, _sender, sendR
     try {
       switch (message.type) {
         case "translate-llm": sendResponse({ ok: true, data: await api("/api/translate", { method: "POST", body: JSON.stringify(message.payload) }) }); break;
-        case "translate-words": sendResponse({ ok: true, data: await api("/api/translate-words", { method: "POST", body: JSON.stringify(message.payload) }) }); break;
         case "entry-status": sendResponse({ ok: true, data: await api(`/api/entries/status?text=${encodeURIComponent(message.text)}&sourceLanguage=${encodeURIComponent(message.sourceLanguage)}`) }); break;
         case "save-entry": sendResponse({ ok: true, data: await api("/api/entries", { method: "PUT", body: JSON.stringify(message.payload) }) }); break;
         case "save-video-words": sendResponse({ ok: true, data: await api("/api/video-learning/save-words", { method: "POST", body: JSON.stringify(message.payload) }) }); break;

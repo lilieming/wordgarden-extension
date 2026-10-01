@@ -12,8 +12,8 @@ function wrongServiceMessage(serviceUrl: string): string {
     try { return new URL(serviceUrl).port; } catch { return ""; }
   })();
   const portHint = port === "5173"
-    ? "你填写的是学习客户端端口 5173；"
-    : "你可能填写了学习客户端地址；";
+    ? "5173 是已经移除的网页版端口；"
+    : "你可能填写了某个网页的地址；";
   return `本地服务地址 ${serviceUrl} 返回了网页而不是 API。${portHint}扩展默认应连接 http://127.0.0.1:3789。`;
 }
 

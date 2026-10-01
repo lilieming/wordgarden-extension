@@ -1,6 +1,7 @@
 import "./youtube";
 import type { TranslateResponse, UpsertEntry } from "@learn-english/shared";
 import type { BackgroundRequest, BackgroundResponse, EntryStatus } from "./types";
+import { describeFailure, isStaleExtensionContext } from "./panel-errors";
 
 declare global {
   interface Window {
@@ -142,8 +143,9 @@ async function showCard(): Promise<void> {
   } catch (error) {
     (card.querySelector(".translation") as HTMLElement).textContent = "暂时无法翻译";
     primary.disabled = true; primary.textContent = "无法收藏";
-    status.hidden = false; status.classList.add("error"); status.textContent = error instanceof Error ? error.message : "翻译失败";
-    settings.hidden = false;
+    status.hidden = false; status.classList.add("error"); status.textContent = describeFailure(error, "翻译失败");
+    // 旧脚本失效时"打开设置"只会把人带偏，只有真的连接/配置问题才露出这个入口。
+    settings.hidden = isStaleExtensionContext(error);
   }
   const save = async () => {
     if (!translation || isSaved) return;
@@ -156,7 +158,7 @@ async function showCard(): Promise<void> {
       await send({ type: "save-entry", payload }); isSaved = true; heart.textContent = "♥"; heart.classList.add("saved"); primary.textContent = "已收藏";
       status.hidden = false; status.classList.remove("error"); status.textContent = "已保存到你的本地词库。";
     } catch (error) {
-      heart.disabled = false; primary.disabled = false; primary.textContent = "重试收藏"; status.hidden = false; status.classList.add("error"); status.textContent = error instanceof Error ? error.message : "保存失败"; settings.hidden = false;
+      heart.disabled = false; primary.disabled = false; primary.textContent = "重试收藏"; status.hidden = false; status.classList.add("error"); status.textContent = describeFailure(error, "保存失败"); settings.hidden = isStaleExtensionContext(error);
     }
   };
   heart.addEventListener("click", save); primary.addEventListener("click", save);

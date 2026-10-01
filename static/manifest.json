@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "English Garden Translator",
-  "version": "0.1.6",
+  "version": "0.1.9",
   "description": "Translate selected English text and save it to your local English Garden.",
   "permissions": [
     "storage",
@@ -50,5 +50,5 @@
       "description": "Translate selected text"
     }
   },
-  "version_name": "0.1.6 · tab-scroll-memory"
+  "version_name": "0.1.9 · 只需 macOS App 后台服务"
 }

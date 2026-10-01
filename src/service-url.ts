@@ -21,7 +21,7 @@ export function normalizeServiceUrl(rawValue: string): string {
 export function serviceUrlWarning(serviceUrl: string): string | null {
   const url = new URL(serviceUrl);
   if ((url.hostname === "127.0.0.1" || url.hostname === "localhost") && url.port === "5173") {
-    return "5173 是学习客户端端口，不是 API 端口。请改为 http://127.0.0.1:3789。";
+    return "5173 是已经移除的网页版端口，不是 API 端口。请改为 http://127.0.0.1:3789。";
   }
   return null;
 }

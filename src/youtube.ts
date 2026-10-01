@@ -1,4 +1,4 @@
-import type { SaveVideoWordsRequest, TranslateWordsRequest } from "@learn-english/shared";
+import type { SaveVideoWordsRequest } from "@learn-english/shared";
 import type { BackgroundRequest, BackgroundResponse } from "./types";
 import { buildYouTubeWords, formatTimestamp, type YouTubeCaptionSegment, type YouTubeWord } from "./youtube-words";
 import { createWordScrollPositions, rememberWordScroll, restoredWordScroll, type WordView } from "./youtube-panel-scroll";
@@ -31,7 +31,6 @@ let transcript: PageTranscript | null = null;
 let words: YouTubeWord[] = [];
 let selected = new Set<string>();
 let saved = new Set<string>();
-let translations = new Map<string, string>();
 let cursor = new Map<string, number>();
 let activeWord = "";
 let filter = "";
@@ -40,7 +39,6 @@ let wordScrollPositions = createWordScrollPositions();
 let loading = false;
 let error = "";
 let notice = "";
-let translationLoading = false;
 let replayTimer: number | null = null;
 
 function isWatchPage(): boolean {
@@ -61,12 +59,12 @@ function ensureRoot(): ShadowRoot {
   root.style.position = "fixed";
   root.style.zIndex = "2147483646";
   root.style.right = "14px";
-  root.style.top = "66px";
+  root.style.top = "74px";
   document.documentElement.append(root);
   shadow = root.attachShadow({ mode: "open" });
   const style = document.createElement("style");
   style.textContent = `
-    *{box-sizing:border-box} button,input{font:inherit}.launcher{width:54px;height:54px;border:0;border-radius:50%;background:#315d43;color:#fff;font:800 15px system-ui;box-shadow:0 10px 30px #17251c66;cursor:pointer}.panel{display:flex;flex-direction:column;width:min(430px,calc(100vw - 28px));height:calc(100vh - 68px);border:1px solid #cdd5ca;border-radius:20px;background:#fffdf8;color:#213026;box-shadow:0 20px 70px #17251c55;font:14px/1.45 system-ui,sans-serif;overflow:hidden}.head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:18px;border-bottom:1px solid #e3e3da}.eyebrow{margin:0 0 5px;color:#6e8172;font-size:10px;font-weight:800;letter-spacing:.16em}.head h2{margin:0;font-size:22px}.head-actions{display:flex;gap:5px}.head button{border:0;background:transparent;color:#637068;font-size:18px;cursor:pointer}.load{margin:14px;border:0;border-radius:999px;padding:12px;background:#315d43;color:#fff;font-weight:800;cursor:pointer}.load:disabled{opacity:.6;cursor:wait}.status{margin:0 14px 12px;padding:10px;border-radius:10px;background:#edf2e9;color:#5e6a61}.error{background:#f8e5e6;color:#913740}.notice{background:#e3eee0;color:#315d43}.meta{padding:0 16px 10px;color:#707970;font-size:12px}.word-tabs{display:flex;gap:5px;margin:0 14px 10px;padding:4px;border-radius:999px;background:#edf0e9}.word-tab{flex:1;border:0;border-radius:999px;padding:7px 9px;background:transparent;color:#667168;font-weight:750;cursor:pointer}.word-tab.active{background:#315d43;color:#fff}.tools{display:flex;gap:8px;padding:0 14px 12px}.tools input{min-width:0;flex:1;border:1px solid #cbd1c8;border-radius:10px;padding:10px;background:#fff}.save{border:0;border-radius:10px;padding:9px 12px;background:#315d43;color:#fff;font-weight:750;cursor:pointer}.save:disabled{opacity:.5;cursor:not-allowed}.words{display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:minmax(98px,max-content);align-content:start;gap:7px;min-height:0;flex:1;padding:0 12px 16px;overflow:auto}.word{position:relative;min-width:0;min-height:98px;border:1px solid #d9ddd5;border-radius:12px;background:#fff;overflow:hidden}.word.active{border-color:#5d8464;box-shadow:0 0 0 2px #5d84641f}.word.chosen{background:#edf4e9;border-color:#91aa8e}.play{display:flex;width:100%;height:100%;min-height:96px;flex-direction:column;align-items:flex-start;gap:2px;border:0;padding:11px 10px 28px;background:transparent;color:#213026;text-align:left;cursor:pointer}.play strong{max-width:100%;overflow:hidden;text-overflow:ellipsis;font-size:16px}.translation{max-width:100%;overflow:hidden;color:#4e6a55;font-size:13px;font-weight:650;text-overflow:ellipsis;white-space:nowrap}.time{color:#54705b;font-size:11px}.count{color:#858d87;font-size:11px}.pick{position:absolute;right:8px;bottom:6px;display:flex;align-items:center;gap:4px;color:#677168;font-size:10px;cursor:pointer}.pick input{margin:0;accent-color:#315d43}.context{margin:0 14px 12px;padding:10px;border-radius:10px;background:#f0eee6;color:#5c655e}.context strong{display:block;margin-bottom:3px}.empty{padding:50px 20px;text-align:center;color:#7c847d}.word-list-empty{grid-column:1/-1}.footer{padding:9px 14px;border-top:1px solid #e4e4dc;color:#7b827c;font-size:11px}.saved{color:#315d43;font-weight:750}@media(max-width:700px){.panel{width:calc(100vw - 16px);height:calc(100vh - 68px)}.words{grid-template-columns:1fr}}
+    *{box-sizing:border-box} button,input{font:inherit}.launcher{width:54px;height:54px;border:0;border-radius:50%;background:#315d43;color:#fff;font:800 15px system-ui;box-shadow:0 10px 30px #17251c66;cursor:pointer}.panel{display:flex;flex-direction:column;width:min(410px,calc(100vw - 28px));height:calc(100vh - 90px);border:1px solid #cdd5ca;border-radius:20px;background:#fffdf8;color:#213026;box-shadow:0 20px 70px #17251c55;font:14px/1.45 system-ui,sans-serif;overflow:hidden}.head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:18px;border-bottom:1px solid #e3e3da}.eyebrow{margin:0 0 5px;color:#6e8172;font-size:10px;font-weight:800;letter-spacing:.16em}.head h2{margin:0;font-size:22px}.head-actions{display:flex;gap:5px}.head button{border:0;background:transparent;color:#637068;font-size:18px;cursor:pointer}.load{margin:14px;border:0;border-radius:999px;padding:12px;background:#315d43;color:#fff;font-weight:800;cursor:pointer}.load:disabled{opacity:.6;cursor:wait}.status{margin:0 14px 12px;padding:10px;border-radius:10px;background:#edf2e9;color:#5e6a61}.error{background:#f8e5e6;color:#913740}.notice{background:#e3eee0;color:#315d43}.meta{padding:0 16px 10px;color:#707970;font-size:12px}.word-tabs{display:flex;gap:5px;margin:0 14px 10px;padding:4px;border-radius:999px;background:#edf0e9}.word-tab{flex:1;border:0;border-radius:999px;padding:7px 9px;background:transparent;color:#667168;font-weight:750;cursor:pointer}.word-tab.active{background:#315d43;color:#fff}.tools{display:flex;gap:8px;padding:0 14px 12px}.tools input{min-width:0;flex:1;border:1px solid #cbd1c8;border-radius:10px;padding:10px;background:#fff}.save{border:0;border-radius:10px;padding:9px 12px;background:#315d43;color:#fff;font-weight:750;cursor:pointer}.save:disabled{opacity:.5;cursor:not-allowed}.words{display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:minmax(98px,max-content);align-content:start;gap:7px;min-height:0;flex:1;padding:0 12px 16px;overflow:auto}.word{position:relative;min-width:0;min-height:98px;border:1px solid #d9ddd5;border-radius:12px;background:#fff;overflow:hidden}.word.active{border-color:#5d8464;box-shadow:0 0 0 2px #5d84641f}.word.chosen{background:#edf4e9;border-color:#91aa8e}.play{display:flex;width:100%;height:100%;min-height:96px;flex-direction:column;align-items:flex-start;gap:2px;border:0;padding:11px 10px 28px;background:transparent;color:#213026;text-align:left;cursor:pointer}.play strong{max-width:100%;overflow:hidden;text-overflow:ellipsis;font-size:16px}.time{color:#54705b;font-size:11px}.count{color:#858d87;font-size:11px}.pick{position:absolute;right:8px;bottom:6px;display:flex;align-items:center;gap:4px;color:#677168;font-size:10px;cursor:pointer}.pick input{margin:0;accent-color:#315d43}.context{margin:0 14px 12px;padding:10px;border-radius:10px;background:#f0eee6;color:#5c655e}.context strong{display:block;margin-bottom:3px}.empty{padding:50px 20px;text-align:center;color:#7c847d}.word-list-empty{grid-column:1/-1}.footer{padding:9px 14px;border-top:1px solid #e4e4dc;color:#7b827c;font-size:11px}.saved{color:#315d43;font-weight:750}@media(max-width:700px){.panel{width:calc(100vw - 16px);height:calc(100vh - 82px)}.words{grid-template-columns:1fr}}
   `;
   shadow.append(style);
   return shadow;
@@ -77,7 +75,7 @@ function closePanel(): void {
 }
 
 function resetForNavigation(): void {
-  transcript = null; words = []; selected = new Set(); saved = new Set(); translations = new Map(); cursor = new Map(); activeWord = ""; filter = ""; wordView = "all"; wordScrollPositions = createWordScrollPositions(); loading = false; error = ""; notice = ""; translationLoading = false;
+  transcript = null; words = []; selected = new Set(); saved = new Set(); cursor = new Map(); activeWord = ""; filter = ""; wordView = "all"; wordScrollPositions = createWordScrollPositions(); loading = false; error = ""; notice = "";
   if (replayTimer !== null) window.clearTimeout(replayTimer);
   replayTimer = null;
   closePanel();
@@ -170,25 +168,6 @@ function renderWordList(panel: HTMLElement): void {
   restoreCurrentWordScroll(list);
 }
 
-async function loadUnknownTranslations(panel: HTMLElement): Promise<void> {
-  const missing = words.filter((item) => isUnknownWord(item.word) && !translations.has(item.word)).map((item) => item.word);
-  if (missing.length === 0 || translationLoading) return;
-  translationLoading = true;
-  renderWordList(panel);
-  try {
-    for (let start = 0; start < missing.length; start += 100) {
-      const payload: TranslateWordsRequest = { words: missing.slice(start, start + 100) };
-      const response = await send<{ items: Array<{ word: string; translation: string }> }>({ type: "translate-words", payload });
-      for (const item of response.items) translations.set(item.word.toLocaleLowerCase("en-US"), item.translation);
-    }
-  } catch (cause) {
-    showPanelError(cause instanceof Error ? cause.message : "获取单词翻译失败");
-  } finally {
-    translationLoading = false;
-    if (panel.isConnected && wordView === "unknown") renderWordList(panel);
-  }
-}
-
 function updateContext(item: YouTubeWord, occurrenceIndex: number): void {
   const context = shadow?.querySelector<HTMLElement>(".context");
   if (!context) return;
@@ -246,7 +225,6 @@ function renderPanel(): void {
       wordView = nextView;
       updatePanelControls(panel);
       renderWordList(panel);
-      if (wordView === "unknown") void loadUnknownTranslations(panel);
     });
   });
   panel.querySelector<HTMLButtonElement>(".save")!.addEventListener("click", () => void saveSelectedWords());
@@ -269,11 +247,9 @@ function createWordCard(item: YouTubeWord): HTMLElement {
   const occurrenceIndex = cursor.get(item.word) ?? 0;
   const occurrence = item.occurrences[Math.min(occurrenceIndex, item.occurrences.length - 1)] ?? item.occurrences[0]!;
   const strong = document.createElement("strong"); strong.textContent = item.word;
-  const translation = document.createElement("span"); translation.className = "translation";
-  if (wordView === "unknown") translation.textContent = translations.get(item.word) ?? (translationLoading ? "正在获取翻译…" : "暂无翻译");
   const time = document.createElement("span"); time.className = "time"; time.textContent = formatTimestamp(occurrence.offset);
   const count = document.createElement("span"); count.className = "count"; count.textContent = `出现 ${item.count} 次${item.count > 1 ? " · 再点下一处" : ""}`;
-  play.append(strong, ...(wordView === "unknown" ? [translation] : []), time, count); play.addEventListener("click", () => playWord(item));
+  play.append(strong, time, count); play.addEventListener("click", () => playWord(item));
   const label = document.createElement("label"); label.className = "pick";
   const checkbox = document.createElement("input"); checkbox.type = "checkbox"; checkbox.checked = isUnknownWord(item.word); checkbox.disabled = saved.has(item.word);
   checkbox.addEventListener("change", () => {
@@ -303,7 +279,7 @@ function createWordCard(item: YouTubeWord): HTMLElement {
 }
 
 async function requestTranscript(): Promise<void> {
-  loading = true; error = ""; notice = ""; transcript = null; words = []; selected = new Set(); translations = new Map(); cursor = new Map(); activeWord = ""; wordView = "all"; wordScrollPositions = createWordScrollPositions(); translationLoading = false; renderPanel();
+  loading = true; error = ""; notice = ""; transcript = null; words = []; selected = new Set(); cursor = new Map(); activeWord = ""; wordView = "all"; wordScrollPositions = createWordScrollPositions(); renderPanel();
   const requestId = crypto.randomUUID();
   try {
     const result = await new Promise<PageTranscript>((resolve, reject) => {
