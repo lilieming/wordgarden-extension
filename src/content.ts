@@ -2,15 +2,7 @@ import "./youtube";
 import type { TranslateResponse, UpsertEntry } from "@learn-english/shared";
 import type { BackgroundRequest, BackgroundResponse, EntryStatus } from "./types";
 import { describeFailure, isStaleExtensionContext } from "./panel-errors";
-
-declare global {
-  interface Window {
-    Translator?: {
-      availability(options: { sourceLanguage: string; targetLanguage: string }): Promise<string>;
-      create(options: { sourceLanguage: string; targetLanguage: string; monitor?: (monitor: EventTarget) => void }): Promise<{ translate(text: string): Promise<string>; destroy?: () => void }>;
-    };
-  }
-}
+import { openChromeTranslator } from "./chrome-translate";
 
 const ROOT_ID = "english-garden-root";
 let selectionState: { text: string; sentence: string; rect: DOMRect } | null = null;
@@ -94,15 +86,12 @@ function showTrigger(state: NonNullable<typeof selectionState>): void {
 }
 
 async function chromeTranslate(text: string): Promise<TranslateResponse | null> {
-  if (!window.Translator) return null;
+  const translator = await openChromeTranslator();
+  if (!translator) return null;
   try {
-    const availability = await window.Translator.availability({ sourceLanguage: "en", targetLanguage: "zh" });
-    if (availability === "unavailable") return null;
-    const translator = await window.Translator.create({ sourceLanguage: "en", targetLanguage: "zh" });
     const result = await translator.translate(text);
-    translator.destroy?.();
-    return { translation: result, provider: "chrome" };
-  } catch { return null; }
+    return result.trim() ? { translation: result, provider: "chrome" } : null;
+  } catch { return null; } finally { translator.close(); }
 }
 
 async function resolveTranslation(text: string): Promise<TranslateResponse> {

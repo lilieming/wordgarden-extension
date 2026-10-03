@@ -14,4 +14,9 @@ describe("YouTube panel word grid", () => {
   it("lets the card button fill its row", () => {
     expect(source).toContain("height:100%;min-height:96px");
   });
+
+  it("keeps the panel clear of YouTube's header and wide enough for two columns", () => {
+    expect(source).toContain('root.style.top = "64px"');
+    expect(source).toContain("width:min(430px,calc(100vw - 28px))");
+  });
 });

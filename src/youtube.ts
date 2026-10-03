@@ -2,6 +2,7 @@ import type { SaveVideoWordsRequest } from "@learn-english/shared";
 import type { BackgroundRequest, BackgroundResponse } from "./types";
 import { buildYouTubeWords, formatTimestamp, type YouTubeCaptionSegment, type YouTubeWord } from "./youtube-words";
 import { createWordScrollPositions, rememberWordScroll, restoredWordScroll, type WordView } from "./youtube-panel-scroll";
+import { openChromeTranslator } from "./chrome-translate";
 
 interface PageTranscript {
   videoId: string;
@@ -59,12 +60,12 @@ function ensureRoot(): ShadowRoot {
   root.style.position = "fixed";
   root.style.zIndex = "2147483646";
   root.style.right = "14px";
-  root.style.top = "74px";
+  root.style.top = "64px";
   document.documentElement.append(root);
   shadow = root.attachShadow({ mode: "open" });
   const style = document.createElement("style");
   style.textContent = `
-    *{box-sizing:border-box} button,input{font:inherit}.launcher{width:54px;height:54px;border:0;border-radius:50%;background:#315d43;color:#fff;font:800 15px system-ui;box-shadow:0 10px 30px #17251c66;cursor:pointer}.panel{display:flex;flex-direction:column;width:min(410px,calc(100vw - 28px));height:calc(100vh - 90px);border:1px solid #cdd5ca;border-radius:20px;background:#fffdf8;color:#213026;box-shadow:0 20px 70px #17251c55;font:14px/1.45 system-ui,sans-serif;overflow:hidden}.head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:18px;border-bottom:1px solid #e3e3da}.eyebrow{margin:0 0 5px;color:#6e8172;font-size:10px;font-weight:800;letter-spacing:.16em}.head h2{margin:0;font-size:22px}.head-actions{display:flex;gap:5px}.head button{border:0;background:transparent;color:#637068;font-size:18px;cursor:pointer}.load{margin:14px;border:0;border-radius:999px;padding:12px;background:#315d43;color:#fff;font-weight:800;cursor:pointer}.load:disabled{opacity:.6;cursor:wait}.status{margin:0 14px 12px;padding:10px;border-radius:10px;background:#edf2e9;color:#5e6a61}.error{background:#f8e5e6;color:#913740}.notice{background:#e3eee0;color:#315d43}.meta{padding:0 16px 10px;color:#707970;font-size:12px}.word-tabs{display:flex;gap:5px;margin:0 14px 10px;padding:4px;border-radius:999px;background:#edf0e9}.word-tab{flex:1;border:0;border-radius:999px;padding:7px 9px;background:transparent;color:#667168;font-weight:750;cursor:pointer}.word-tab.active{background:#315d43;color:#fff}.tools{display:flex;gap:8px;padding:0 14px 12px}.tools input{min-width:0;flex:1;border:1px solid #cbd1c8;border-radius:10px;padding:10px;background:#fff}.save{border:0;border-radius:10px;padding:9px 12px;background:#315d43;color:#fff;font-weight:750;cursor:pointer}.save:disabled{opacity:.5;cursor:not-allowed}.words{display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:minmax(98px,max-content);align-content:start;gap:7px;min-height:0;flex:1;padding:0 12px 16px;overflow:auto}.word{position:relative;min-width:0;min-height:98px;border:1px solid #d9ddd5;border-radius:12px;background:#fff;overflow:hidden}.word.active{border-color:#5d8464;box-shadow:0 0 0 2px #5d84641f}.word.chosen{background:#edf4e9;border-color:#91aa8e}.play{display:flex;width:100%;height:100%;min-height:96px;flex-direction:column;align-items:flex-start;gap:2px;border:0;padding:11px 10px 28px;background:transparent;color:#213026;text-align:left;cursor:pointer}.play strong{max-width:100%;overflow:hidden;text-overflow:ellipsis;font-size:16px}.time{color:#54705b;font-size:11px}.count{color:#858d87;font-size:11px}.pick{position:absolute;right:8px;bottom:6px;display:flex;align-items:center;gap:4px;color:#677168;font-size:10px;cursor:pointer}.pick input{margin:0;accent-color:#315d43}.context{margin:0 14px 12px;padding:10px;border-radius:10px;background:#f0eee6;color:#5c655e}.context strong{display:block;margin-bottom:3px}.empty{padding:50px 20px;text-align:center;color:#7c847d}.word-list-empty{grid-column:1/-1}.footer{padding:9px 14px;border-top:1px solid #e4e4dc;color:#7b827c;font-size:11px}.saved{color:#315d43;font-weight:750}@media(max-width:700px){.panel{width:calc(100vw - 16px);height:calc(100vh - 82px)}.words{grid-template-columns:1fr}}
+    *{box-sizing:border-box} button,input{font:inherit}.launcher{width:54px;height:54px;border:0;border-radius:50%;background:#315d43;color:#fff;font:800 15px system-ui;box-shadow:0 10px 30px #17251c66;cursor:pointer}.panel{display:flex;flex-direction:column;width:min(430px,calc(100vw - 28px));height:calc(100vh - 90px);border:1px solid #cdd5ca;border-radius:20px;background:#fffdf8;color:#213026;box-shadow:0 20px 70px #17251c55;font:14px/1.45 system-ui,sans-serif;overflow:hidden}.head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:18px;border-bottom:1px solid #e3e3da}.eyebrow{margin:0 0 5px;color:#6e8172;font-size:10px;font-weight:800;letter-spacing:.16em}.head h2{margin:0;font-size:22px}.head-actions{display:flex;gap:5px}.head button{border:0;background:transparent;color:#637068;font-size:18px;cursor:pointer}.load{margin:14px;border:0;border-radius:999px;padding:12px;background:#315d43;color:#fff;font-weight:800;cursor:pointer}.load:disabled{opacity:.6;cursor:wait}.status{margin:0 14px 12px;padding:10px;border-radius:10px;background:#edf2e9;color:#5e6a61}.error{background:#f8e5e6;color:#913740}.notice{background:#e3eee0;color:#315d43}.meta{padding:0 16px 10px;color:#707970;font-size:12px}.word-tabs{display:flex;gap:5px;margin:0 14px 10px;padding:4px;border-radius:999px;background:#edf0e9}.word-tab{flex:1;border:0;border-radius:999px;padding:7px 9px;background:transparent;color:#667168;font-weight:750;cursor:pointer}.word-tab.active{background:#315d43;color:#fff}.tools{display:flex;gap:8px;padding:0 14px 12px}.tools input{min-width:0;flex:1;border:1px solid #cbd1c8;border-radius:10px;padding:10px;background:#fff}.save{border:0;border-radius:10px;padding:9px 12px;background:#315d43;color:#fff;font-weight:750;cursor:pointer}.save:disabled{opacity:.5;cursor:not-allowed}.words{display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:minmax(98px,max-content);align-content:start;gap:7px;min-height:0;flex:1;padding:0 12px 16px;overflow:auto}.word{position:relative;min-width:0;min-height:98px;border:1px solid #d9ddd5;border-radius:12px;background:#fff;overflow:hidden}.word.active{border-color:#5d8464;box-shadow:0 0 0 2px #5d84641f}.word.chosen{background:#edf4e9;border-color:#91aa8e}.play{display:flex;width:100%;height:100%;min-height:96px;flex-direction:column;align-items:flex-start;gap:2px;border:0;padding:11px 10px 28px;background:transparent;color:#213026;text-align:left;cursor:pointer}.play strong{max-width:100%;overflow:hidden;text-overflow:ellipsis;font-size:16px}.time{color:#54705b;font-size:11px}.count{color:#858d87;font-size:11px}.pick{position:absolute;right:8px;bottom:6px;display:flex;align-items:center;gap:4px;color:#677168;font-size:10px;cursor:pointer}.pick input{margin:0;accent-color:#315d43}.context{margin:0 14px 12px;padding:10px;border-radius:10px;background:#f0eee6;color:#5c655e}.context strong{display:block;margin-bottom:3px}.empty{padding:50px 20px;text-align:center;color:#7c847d}.word-list-empty{grid-column:1/-1}.footer{padding:9px 14px;border-top:1px solid #e4e4dc;color:#7b827c;font-size:11px}.saved{color:#315d43;font-weight:750}@media(max-width:700px){.panel{width:calc(100vw - 16px);height:calc(100vh - 82px)}.words{grid-template-columns:1fr}}
   `;
   shadow.append(style);
   return shadow;
@@ -323,20 +324,39 @@ async function saveSelectedWords(): Promise<void> {
   error = ""; notice = "正在翻译并保存…"; renderPanel();
   const chosen = words.filter((item) => selected.has(item.word));
   let created = 0;
+  let withTranslation = 0;
   try {
+    // 译文优先用 Chrome 内置翻译：本地模型，没配大模型 API Key 也能收词。
+    const translator = await openChromeTranslator();
+    const translated = new Map<string, string>();
+    if (translator) {
+      for (const item of chosen) {
+        const text = await translator.translate(item.word).catch(() => "");
+        if (text.trim()) translated.set(item.word, text.trim());
+      }
+      translator.close();
+    }
     for (let start = 0; start < chosen.length; start += 50) {
       const chunk = chosen.slice(start, start + 50);
       const payload: SaveVideoWordsRequest = {
         videoId: transcript.videoId,
         title: transcript.title,
         url: transcript.url,
-        words: chunk.map((item) => ({ word: item.word, context: item.occurrences[0]!.context, offset: item.occurrences[0]!.offset }))
+        words: chunk.map((item) => ({
+          word: item.word,
+          context: item.occurrences[0]!.context,
+          offset: item.occurrences[0]!.offset,
+          translation: translated.get(item.word) ?? ""
+        }))
       };
-      const response = await send<{ created: number; total: number }>({ type: "save-video-words", payload });
+      const response = await send<{ items: Array<{ translation: string }>; created: number; total: number }>({ type: "save-video-words", payload });
       created += response.created;
+      withTranslation += response.items.filter((entry) => entry.translation.trim()).length;
     }
     for (const item of chosen) saved.add(item.word);
-    selected = new Set(); notice = `已加入 ${chosen.length} 个单词，其中 ${created} 个是新词。`;
+    selected = new Set();
+    notice = `已加入 ${chosen.length} 个单词，其中 ${created} 个是新词。`;
+    if (withTranslation < chosen.length) notice += ` ${chosen.length - withTranslation} 个还没有中文释义，配好大模型 API Key 后可补。`;
   } catch (cause) {
     notice = ""; error = cause instanceof Error ? cause.message : "加入词库失败";
   }
