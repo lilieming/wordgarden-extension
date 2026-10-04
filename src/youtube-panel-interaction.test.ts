@@ -25,7 +25,8 @@ describe("YouTube panel selection interaction", () => {
     const functionStart = source.indexOf("function playWord(");
     const functionEnd = source.indexOf("async function saveSelectedWords", functionStart);
     const playWord = source.slice(functionStart, functionEnd);
-    expect(playWord).toContain("updateContext(item, index)");
+    expect(playWord).toContain("playOccurrence(item, occurrence)");
+    expect(playWord).toContain("updateContext(item, Math.max(0, item.occurrences.indexOf(occurrence)))");
     expect(playWord).toContain("updateActiveWordCards(item)");
     expect(playWord).not.toContain("renderPanel()");
   });

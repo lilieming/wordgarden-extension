@@ -1,8 +1,8 @@
-export type WordView = "all" | "unknown";
+export type WordView = "all" | "unknown" | "timeline";
 export type WordScrollPositions = Record<WordView, number>;
 
 export function createWordScrollPositions(): WordScrollPositions {
-  return { all: 0, unknown: 0 };
+  return { all: 0, unknown: 0, timeline: 0 };
 }
 
 export function rememberWordScroll(positions: WordScrollPositions, view: WordView, scrollTop: number): void {
