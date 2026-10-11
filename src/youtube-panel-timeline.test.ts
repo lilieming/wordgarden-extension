@@ -51,11 +51,15 @@ describe("YouTube panel timeline view", () => {
     expect(source).toContain("const gloss = glosses.get(token.word)");
   });
 
-  it("reuses one Chrome translator session for glosses and saving", () => {
+  it("looks the word up in the built-in dictionary before reusing one Chrome session", () => {
     expect(source).toContain("function sharedTranslator(): Promise<ChromeTranslator | null>");
     const start = source.indexOf("async function requestGloss(");
     const end = source.indexOf("function renderPanel(", start);
-    expect(source.slice(start, end)).toContain("await sharedTranslator()");
+    const gloss = source.slice(start, end);
+    expect(gloss).toContain("dictionaryGloss(word)");
+    expect(gloss).toContain("chromeGloss(word)");
+    const chrome = source.slice(source.indexOf("async function chromeGloss("), start);
+    expect(chrome).toContain("await sharedTranslator()");
     const save = source.slice(source.indexOf("async function saveWords("), source.indexOf("interface YouTubeExtensionWindow"));
     expect(save).toContain("const session = await sharedTranslator()");
     expect(save).not.toContain("session.close()");

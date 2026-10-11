@@ -1,5 +1,5 @@
 import type { SaveVideoWordsRequest } from "@learn-english/shared";
-import type { BackgroundRequest, BackgroundResponse } from "./types";
+import type { BackgroundRequest, BackgroundResponse, WordLookup } from "./types";
 import { buildYouTubeWords, formatTimestamp, readableCaptionText, tokenizeCaption, type YouTubeCaptionSegment, type YouTubeWord, type YouTubeWordOccurrence } from "./youtube-words";
 import { createWordScrollPositions, rememberWordScroll, restoredWordScroll, type WordView } from "./youtube-panel-scroll";
 import { captionIndexAt } from "./youtube-caption-sync";
@@ -108,7 +108,7 @@ function renderLauncher(): void {
   const button = document.createElement("button");
   button.className = "launcher";
   button.textContent = "学词";
-  button.title = "用 English Garden 学习当前视频";
+  button.title = "用 Word Garden 学习当前视频";
   button.addEventListener("click", () => { renderPanel(); void requestTranscript(); });
   ui.append(button);
 }
@@ -344,11 +344,21 @@ function sharedTranslator(): Promise<ChromeTranslator | null> {
   return translator;
 }
 
+/** 点词先看内置词典：命中就省掉一次 Chrome 翻译，也不吃 token。 */
+async function dictionaryGloss(word: string): Promise<string | null> {
+  const result = await send<WordLookup>({ type: "lookup-word", word }).catch(() => ({ meaning: null }));
+  return result.meaning?.trim() || null;
+}
+
+async function chromeGloss(word: string): Promise<string | null> {
+  const session = await sharedTranslator();
+  return (session ? await session.translate(word).catch(() => "") : "").trim() || null;
+}
+
 async function requestGloss(word: string): Promise<void> {
   if (glosses.has(word) || glossPending.has(word)) return;
   glossPending.add(word);
-  const session = await sharedTranslator();
-  const text = (session ? await session.translate(word).catch(() => "") : "").trim();
+  const text = (await dictionaryGloss(word)) ?? (await chromeGloss(word));
   glossPending.delete(word);
   if (!text) return;
   glosses.set(word, text);
@@ -404,7 +414,7 @@ function renderPanel(): void {
   ui.querySelectorAll(":not(style)").forEach((node) => node.remove());
   const panel = document.createElement("section"); panel.className = "panel";
   panel.innerHTML = `
-    <header class="head"><div><p class="eyebrow">ENGLISH GARDEN</p><h2>当前视频学单词</h2></div><div class="head-actions"><button class="reload" title="重新读取字幕">↻</button><button class="close" title="收起">×</button></div></header>
+    <header class="head"><div><p class="eyebrow">WORD GARDEN</p><h2>当前视频学单词</h2></div><div class="head-actions"><button class="reload" title="重新读取字幕">↻</button><button class="close" title="收起">×</button></div></header>
     ${!transcript ? `<button class="load" ${loading ? "disabled" : ""}>${loading ? "正在读取当前账号可见字幕…" : "读取当前视频字幕"}</button>` : ""}
     ${error ? `<div class="status error"></div>` : ""}${notice ? `<div class="status notice"></div>` : ""}
     ${transcript ? `<div class="meta"><strong></strong><br><span>${words.length} 个不重复单词 · ${transcript.language}</span></div><nav class="word-tabs"><button class="word-tab" data-view="all"></button><button class="word-tab" data-view="unknown"></button><button class="word-tab" data-view="timeline">时间线</button></nav><div class="tools"><input class="filter" placeholder="筛选单词…" value=""><button class="save" ${selected.size === 0 ? "disabled" : ""}>加入词库 (${selected.size})</button></div><div class="context" ${activeWord ? "" : "hidden"}></div><div class="words"></div><footer class="footer">点击单词：跳到下一处并重播 · 勾选“不认识”：批量加入本地词库</footer>` : `<div class="empty">直接读取你登录状态下当前 YouTube 页面可见的英文字幕。</div>`}

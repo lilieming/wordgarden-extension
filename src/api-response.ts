@@ -37,7 +37,7 @@ export async function parseApiResponse(response: Response, serviceUrl: string): 
   try {
     body = text ? JSON.parse(text) : null;
   } catch {
-    throw new ExtensionApiError("本地服务返回了无效 JSON。请确认连接的是 English Garden API。", "INVALID_JSON");
+    throw new ExtensionApiError("本地服务返回了无效 JSON。请确认连接的是 Word Garden API。", "INVALID_JSON");
   }
 
   if (!response.ok) {

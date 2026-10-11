@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "English Garden Translator",
+  "name": "Word Garden Translator",
   "version": "0.1.9",
-  "description": "Translate selected English text and save it to your local English Garden.",
+  "description": "Translate selected English text and save it to your local Word Garden.",
   "permissions": [
     "storage",
     "contextMenus"
@@ -39,7 +39,7 @@
   ],
   "options_page": "options.html",
   "action": {
-    "default_title": "English Garden"
+    "default_title": "Word Garden"
   },
   "commands": {
     "translate-selection": {

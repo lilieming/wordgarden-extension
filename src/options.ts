@@ -5,9 +5,9 @@ import "./options.css";
 const DEFAULT: ServiceConfig = { serviceUrl: "http://127.0.0.1:3789" };
 const app = document.querySelector<HTMLDivElement>("#app")!;
 app.innerHTML = `<main>
-  <p class="eyebrow">ENGLISH GARDEN · <span class="extension-version"></span></p>
+  <p class="eyebrow">WORD GARDEN · <span class="extension-version"></span></p>
   <h1>扩展设置</h1>
-  <p>扩展需要连接本机的 <strong>API 服务</strong>：打开 English Garden macOS App，设置页里的“后台服务”会自动监听。大模型 API Key 也在 App 的设置页配置。</p>
+  <p>扩展需要连接本机的 <strong>API 服务</strong>：打开 Word Garden macOS App，设置页里的“后台服务”会自动监听。大模型 API Key 也在 App 的设置页配置。</p>
   <div class="address-guide"><span>扩展 API</span><code>http://127.0.0.1:3789</code></div>
   <form>
     <label>本地 API 服务地址<input type="url" required spellcheck="false"><small>默认端口是 <strong>3789</strong>，要和 App 设置页显示的那个地址保持一致。</small></label>

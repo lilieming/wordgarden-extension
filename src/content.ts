@@ -1,6 +1,6 @@
 import "./youtube";
 import type { TranslateResponse, UpsertEntry } from "@learn-english/shared";
-import type { BackgroundRequest, BackgroundResponse, EntryStatus } from "./types";
+import type { BackgroundRequest, BackgroundResponse, EntryStatus, WordLookup } from "./types";
 import { describeFailure, isStaleExtensionContext } from "./panel-errors";
 import { openChromeTranslator } from "./chrome-translate";
 
@@ -85,6 +85,12 @@ function showTrigger(state: NonNullable<typeof selectionState>): void {
   ui.append(button); position(state.rect);
 }
 
+/** 划词能不能查词典由后台判断（只有单个单词才查），这里只管要结果。 */
+async function dictionaryGloss(text: string): Promise<TranslateResponse | null> {
+  const result = await send<WordLookup>({ type: "lookup-word", word: text }).catch(() => ({ meaning: null }));
+  return result.meaning ? { translation: result.meaning, provider: "dictionary" } : null;
+}
+
 async function chromeTranslate(text: string): Promise<TranslateResponse | null> {
   const translator = await openChromeTranslator();
   if (!translator) return null;
@@ -95,9 +101,17 @@ async function chromeTranslate(text: string): Promise<TranslateResponse | null> 
 }
 
 async function resolveTranslation(text: string): Promise<TranslateResponse> {
+  const gloss = await dictionaryGloss(text);
+  if (gloss) return gloss;
   const builtIn = await chromeTranslate(text);
   if (builtIn) return builtIn;
   return send<TranslateResponse>({ type: "translate-llm", payload: { text, sourceLanguage: "en", targetLanguage: "zh-CN" } });
+}
+
+function providerLabel(result: TranslateResponse): string {
+  if (result.provider === "dictionary") return "内置词典";
+  if (result.provider === "chrome") return "Chrome 内置翻译";
+  return `大模型${result.model ? ` · ${result.model}` : ""}`;
 }
 
 async function showCard(): Promise<void> {
@@ -106,7 +120,7 @@ async function showCard(): Promise<void> {
   const ui = ensureRoot();
   ui.querySelectorAll(":not(style)").forEach((node) => node.remove());
   const card = document.createElement("div"); card.className = "card";
-  card.innerHTML = `<div class="head"><div><div class="label">ENGLISH GARDEN</div><div class="original"></div></div><button class="close" aria-label="关闭">×</button></div><div class="translation">正在翻译…</div><div class="provider"></div><div class="actions"><button class="heart" title="收藏">♡</button><button class="primary" disabled>翻译中…</button></div><div class="status" hidden></div><button class="settings" hidden>打开设置</button>`;
+  card.innerHTML = `<div class="head"><div><div class="label">WORD GARDEN</div><div class="original"></div></div><button class="close" aria-label="关闭">×</button></div><div class="translation">正在翻译…</div><div class="provider"></div><div class="actions"><button class="heart" title="收藏">♡</button><button class="primary" disabled>翻译中…</button></div><div class="status" hidden></div><button class="settings" hidden>打开设置</button>`;
   (card.querySelector(".original") as HTMLElement).textContent = state.text;
   ui.append(card);
   const cardWidth = Math.min(390, window.innerWidth - 24);
@@ -126,7 +140,7 @@ async function showCard(): Promise<void> {
       : await resolveTranslation(state.text);
     translation = result; isSaved = savedStatus.saved;
     (card.querySelector(".translation") as HTMLElement).textContent = result.translation;
-    (card.querySelector(".provider") as HTMLElement).textContent = result.provider === "chrome" ? "Chrome 内置翻译" : `大模型${result.model ? ` · ${result.model}` : ""}`;
+    (card.querySelector(".provider") as HTMLElement).textContent = providerLabel(result);
     heart.textContent = isSaved ? "♥" : "♡"; heart.classList.toggle("saved", isSaved);
     primary.disabled = isSaved; primary.textContent = isSaved ? "已收藏" : "收藏到本地";
   } catch (error) {
