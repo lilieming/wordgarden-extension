@@ -30,19 +30,6 @@
 
 扩展只与你本机的 App 通信，不上传任何数据，没有账号，词库不上云。选中的文本会交给 App 处理；如果你配了自己的大模型密钥，App 会把待翻译文本发给该模型端点。
 
-## 从源码改
-
-源码是这个仓库的根目录（`src/`、`static/`、`vite.config.ts`）。它依赖同工作区里的 `@learn-english/shared` 类型包，所以请在上层仓库 [learn-english-self](https://github.com/lilieming/learn-english-self) 里构建：
-
-```
-pnpm install
-pnpm --filter @learn-english/extension build   # 产物在 apps/extension/dist
-```
-
-`static/dictionary.json`（内置选词表）也是由上层仓库的 `scripts/build-vocabulary.mjs` 生成的。
-
-本仓库是单向镜像：上层仓库的 `apps/extension` 是唯一源码地，改动定期同步到这里，连同重新构建的 `built/`。
-
 ## 许可
 
 暂未声明许可证，Copyright © 2026 leon.li。
