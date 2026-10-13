@@ -1,0 +1,48 @@
+# Word Garden · Chrome 扩展
+
+划词翻译并收进本机词库，YouTube 视频里按字幕学生词。配合 macOS 版 Word Garden App 使用：扩展只负责在浏览器里取词，词库、拼读、助记和 AI 对话都由 App 在你自己电脑上完成。
+
+产品主页：https://english-garden-1kq.pages.dev
+
+## 先决条件
+
+扩展要把词存到本机，所以**必须先装好并启动 macOS 版 Word Garden App**。App 启动后会在 `http://127.0.0.1:3789` 开一个只监听本机的服务，扩展连的就是它。没装 App 时扩展能划词，但存不下，会提示连不上本机服务。
+
+## 安装
+
+1. 下载本仓库（Code → Download ZIP），解压
+2. Chrome 地址栏打开 `chrome://extensions`
+3. 打开右上角的「开发者模式」
+4. 点「加载已解压的扩展程序」，选择解压出来的 `built` 文件夹
+5. 点工具栏里的扩展图标打开设置，确认「本地 API 服务地址」是 `http://127.0.0.1:3789`，点「测试连接并保存」
+
+`built` 里就是可直接加载的成品，不需要 Node、不需要构建。
+
+## 用法
+
+- **任意网页**：选中英文 → 点浮动按钮，或右键「翻译选中内容」，或按 `Alt` + `Shift` + `E`
+- **YouTube**：打开 `youtube.com/watch` 视频页，右侧出现「学词」按钮 → 载入字幕 → 切到时间线模式整条字幕铺开，点词标为不认识、批量收进词库，生词按播放进度跟随高亮
+- 中文释义按「内置词典 → Chrome 内置翻译 → 大模型」的顺序取，第一个给得出结果的就用它；两者都拿不到时词条照样入库，只留空译文
+
+翻译、助记和 AI 对话用到的大模型密钥在 App 的设置页里配，扩展和 App 共用同一把。
+
+## 隐私
+
+扩展只与你本机的 App 通信，不上传任何数据，没有账号，词库不上云。选中的文本会交给 App 处理；如果你配了自己的大模型密钥，App 会把待翻译文本发给该模型端点。
+
+## 从源码改
+
+源码是这个仓库的根目录（`src/`、`static/`、`vite.config.ts`）。它依赖同工作区里的 `@learn-english/shared` 类型包，所以请在上层仓库 [learn-english-self](https://github.com/lilieming/learn-english-self) 里构建：
+
+```
+pnpm install
+pnpm --filter @learn-english/extension build   # 产物在 apps/extension/dist
+```
+
+`static/dictionary.json`（内置选词表）也是由上层仓库的 `scripts/build-vocabulary.mjs` 生成的。
+
+本仓库是单向镜像：上层仓库的 `apps/extension` 是唯一源码地，改动定期同步到这里，连同重新构建的 `built/`。
+
+## 许可
+
+暂未声明许可证，Copyright © 2026 leon.li。
