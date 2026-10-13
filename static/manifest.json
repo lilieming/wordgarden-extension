@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Word Garden Translator",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "description": "Translate selected English text and save it to your local Word Garden.",
   "permissions": [
     "storage",
@@ -41,14 +41,5 @@
   "action": {
     "default_title": "Word Garden"
   },
-  "commands": {
-    "translate-selection": {
-      "suggested_key": {
-        "default": "Alt+Shift+E",
-        "mac": "Alt+Shift+E"
-      },
-      "description": "Translate selected text"
-    }
-  },
-  "version_name": "0.1.9 · 只需 macOS App 后台服务"
+  "version_name": "0.1.10 · 只需 macOS App 后台服务"
 }
