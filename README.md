@@ -2,7 +2,7 @@
 
 划词翻译并收进本机词库，YouTube 视频里按字幕学生词。配合 macOS 版 Word Garden App 使用：扩展只负责在浏览器里取词，词库、拼读、助记和 AI 对话都由 App 在你自己电脑上完成。
 
-产品主页：https://english-garden-1kq.pages.dev
+产品主页：https://learnenglishwords.cn
 
 ## 先决条件
 
