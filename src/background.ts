@@ -44,9 +44,6 @@ chrome.runtime.onInstalled.addListener(() => {
 chrome.contextMenus.onClicked.addListener((_info, tab) => {
   if (tab?.id) void chrome.tabs.sendMessage(tab.id, { type: "show-selection" }).catch(() => undefined);
 });
-chrome.commands.onCommand.addListener((_command, tab) => {
-  if (tab?.id) void chrome.tabs.sendMessage(tab.id, { type: "show-selection" }).catch(() => undefined);
-});
 chrome.action.onClicked.addListener(() => chrome.runtime.openOptionsPage());
 
 chrome.runtime.onMessage.addListener((message: BackgroundRequest, _sender, sendResponse: (value: BackgroundResponse) => void) => {
