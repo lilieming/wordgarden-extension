@@ -52,8 +52,12 @@ describe("youtube panel mount", () => {
 
 describe("localized extension copy", () => {
   const locales = readdirSync(resolve(process.cwd(), "static/_locales"));
-  const text = (locale: string, key: string) =>
-    (JSON.parse(readFileSync(resolve(process.cwd(), "static/_locales", locale, "messages.json"), "utf8")) as Record<string, { message?: string }>)[key]?.message ?? "";
+  const bundle = (locale: string) =>
+    JSON.parse(readFileSync(resolve(process.cwd(), "static/_locales", locale, "messages.json"), "utf8")) as Record<
+      string,
+      { message?: string; placeholders?: Record<string, { content?: string }> }
+    >;
+  const text = (locale: string, key: string) => bundle(locale)[key]?.message ?? "";
   const keys = ["extensionName", "extensionDescription", "contextMenuTranslate"];
 
   it("ships the same four languages the App ships in", () => {
@@ -84,6 +88,20 @@ describe("localized extension copy", () => {
   it("never claims the gloss is Chinese", () => {
     for (const locale of locales) {
       expect(text(locale, "extensionDescription")).not.toMatch(/中文|中国語|중국어|Chinese/i);
+    }
+  });
+
+  // Chrome 在「加载清单」这一步就拒：消息里用了 $1$ 却没声明 placeholders，
+  // 报 "Variable $1$ used but not defined"，整个扩展直接装不上。
+  it("declares a placeholder for every positional variable", () => {
+    for (const locale of locales) {
+      for (const [key, entry] of Object.entries(bundle(locale))) {
+        // 顶层混进非消息键（比如 placeholders 被写成兄弟键）时 JSON 照样能解析，只有这里拦得住。
+        expect(entry.message, `${locale}.${key} 不是消息条目`).toBeTruthy();
+        for (const n of new Set((entry.message?.match(/\$(\d+)\$/g) ?? []).map((found) => found.replace(/\$/g, "")))) {
+          expect(entry.placeholders?.[n]?.content, `${locale}.${key} 用了 $${n}$ 却没声明`).toBe(`$${n}`);
+        }
+      }
     }
   });
 

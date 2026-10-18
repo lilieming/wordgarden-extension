@@ -4,6 +4,7 @@ import { buildYouTubeWords, formatTimestamp, readableCaptionText, tokenizeCaptio
 import { createWordScrollPositions, rememberWordScroll, restoredWordScroll, type WordView } from "./youtube-panel-scroll";
 import { captionIndexAt } from "./youtube-caption-sync";
 import { hasCaptionBridge } from "./youtube-caption-bridge";
+import { t } from "./copy.content";
 import { openChromeTranslator, type ChromeTranslator } from "./chrome-translate";
 
 interface PageTranscript {
@@ -30,14 +31,6 @@ interface TranscriptMessage {
 
 const ROOT_ID = "english-garden-youtube-panel";
 const REQUEST_SOURCE = "english-garden-extension";
-
-/**
- * 界面文案全在 `static/_locales`。
- * 每个入口各留一份这么一行的取值器，不抽公共模块：content script 是 classic script，
- * 一旦两个入口共享同一个模块，rollup 会把它提成 chunk，classic 里就不能 import
- * （见 build-scope.ts 的断言）。
- */
-const t = (key: string, substitutions?: string | string[]): string => chrome.i18n.getMessage(key, substitutions);
 let root: HTMLDivElement | null = null;
 let shadow: ShadowRoot | null = null;
 let transcript: PageTranscript | null = null;
@@ -616,7 +609,7 @@ async function saveWords(chosen: YouTubeWord[], onAccepted?: () => void): Promis
     }
     for (const item of chosen) saved.add(item.word);
     onAccepted?.();
-    notice = t("addedWords", [String(chosen.length), String(created)]);
+    notice = t("addedWords", String(chosen.length), String(created));
     if (withTranslation < chosen.length) notice += t("missingGloss", String(chosen.length - withTranslation));
     return true;
   } catch (cause) {

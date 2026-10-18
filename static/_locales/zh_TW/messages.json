@@ -1,14 +1,7 @@
 {
-  "extensionName": {
-    "message": "Word Garden 生詞本"
-  },
-  "extensionDescription": {
-    "message": "把選取的英文譯成釋義，存進裝置上的 Word Garden 詞庫。"
-  },
-  "contextMenuTranslate": {
-    "message": "在 Word Garden 中翻譯"
-  },
-
+  "extensionName": { "message": "Word Garden 生詞本" },
+  "extensionDescription": { "message": "把選取的英文譯成釋義，存進裝置上的 Word Garden 詞庫。" },
+  "contextMenuTranslate": { "message": "在 Word Garden 中翻譯" },
   "triggerLabel": { "message": "譯" },
   "triggerHelp": { "message": "翻譯並收藏" },
   "close": { "message": "關閉" },
@@ -31,7 +24,6 @@
   "providerLlm": { "message": "大模型" },
   "savedLocal": { "message": "已儲存到你的本機詞庫。" },
   "queuedForApp": { "message": "已排入佇列，開啟 Word Garden App 後入庫。" },
-
   "optionsTitle": { "message": "Word Garden 設定" },
   "settingsHeading": { "message": "擴充功能設定" },
   "serviceIntro": { "message": "擴充功能需要連接裝置上的 API 服務：開啟 Word Garden macOS App，設定頁的「背景服務」會自動監聽。大模型的 API Key 也在 App 設定頁配置。" },
@@ -48,7 +40,6 @@
   "statusConnected": { "message": "連線成功，API 地址已儲存。" },
   "iosIntro": { "message": "劃詞收藏的詞會先進入 Word Garden App 的收件佇列，開啟 App 就自動入庫；iOS 上 App 退到背景會被系統掛起，所以擴充功能不連本機服務。" },
   "iosNote": { "message": "釋義取自擴充功能自帶的詞表，詞典裡沒有的詞先收下來，回到 App 再補。" },
-
   "youtubeLauncherLabel": { "message": "學詞" },
   "youtubeLauncherHelp": { "message": "用 Word Garden 學習目前影片" },
   "youtubePanelTitle": { "message": "目前影片學單字" },
@@ -56,7 +47,7 @@
   "collapseHelp": { "message": "收起" },
   "loadingCaptions": { "message": "正在讀取目前帳號可見字幕…" },
   "loadCaptions": { "message": "讀取目前影片字幕" },
-  "uniqueWordsCount": { "message": "共 $1$ 個不重複單字" },
+  "uniqueWordsCount": { "message": "共 $1$ 個不重複單字", "placeholders": { "1": { "content": "$1" } } },
   "timelineTab": { "message": "時間軸" },
   "allWordsTab": { "message": "全部單字" },
   "unknownWordsTab": { "message": "不認識" },
@@ -65,7 +56,7 @@
   "emptyUnknownList": { "message": "還沒有標記不認識的單字。" },
   "emptyWordSearch": { "message": "沒有符合的單字。" },
   "emptyCaptionSearch": { "message": "沒有符合的字幕。" },
-  "wordOccurrences": { "message": "出現 $1$ 次" },
+  "wordOccurrences": { "message": "出現 $1$ 次", "placeholders": { "1": { "content": "$1" } } },
   "nextOccurrenceHint": { "message": " · 再點下一處" },
   "alreadyAdded": { "message": "已加入" },
   "footerTimeline": { "message": "點單字先記進「不認識」並顯示釋義 · 累積後按「加入詞庫」一次提交 · 點時間戳只聽該句" },
@@ -74,15 +65,31 @@
   "noPlayer": { "message": "找不到 YouTube 播放器，請重新整理頁面後再試。" },
   "captionsTimeout": { "message": "讀取字幕逾時。請確認影片已開始載入，或先開啟 YouTube 的「顯示文字記錄」。" },
   "noEnglishWords": { "message": "字幕中沒有辨識到英文單字。" },
-  "captionsRead": { "message": "已從目前登入頁面讀取 $1$ 個不重複單字。" },
+  "captionsRead": { "message": "已從目前登入頁面讀取 $1$ 個不重複單字。", "placeholders": { "1": { "content": "$1" } } },
   "captionReadFailed": { "message": "字幕讀取失敗" },
   "translatingAndSaving": { "message": "正在翻譯並儲存…" },
-  "addedWords": { "message": "已加入 $1$ 個單字，其中 $2$ 個是新詞。" },
-  "missingGloss": { "message": " 還有 $1$ 個沒有釋義，設定大模型 API Key 後可補。" },
+  "addedWords": { "message": "已加入 $1$ 個單字，其中 $2$ 個是新詞。", "placeholders": { "1": { "content": "$1" }, "2": { "content": "$2" } } },
+  "missingGloss": { "message": " 還有 $1$ 個沒有釋義，設定大模型 API Key 後可補。", "placeholders": { "1": { "content": "$1" } } },
   "addFailed": { "message": "加入詞庫失敗" },
   "errNoVideoPage": { "message": "請先開啟一個 YouTube 影片頁面。" },
   "errPlayerNotReady": { "message": "YouTube 播放器尚未就緒，請稍後再試。" },
   "errNoCaptions": { "message": "已找到字幕來源，但沒有讀到字幕內容。請先在 YouTube 開啟「顯示文字記錄」，再點重新讀取。" },
   "errCaptionHttp": { "message": "字幕請求失敗" },
-  "errTrackRead": { "message": "字幕軌道讀取失敗" }
+  "errTrackRead": { "message": "字幕軌道讀取失敗" },
+  "errServiceUnreachable": { "message": "無法連線本機服務 $1$。請確認 API 已啟動；預設地址是 http://127.0.0.1:3789。", "placeholders": { "1": { "content": "$1" } } },
+  "errRelayRejected": { "message": "Word Garden App 沒有收下這個詞。" },
+  "errNoLocalService": { "message": "iOS 上的擴充功能不連本機服務，這個詞的釋義回到 App 再補。" },
+  "errUnknown": { "message": "未知錯誤" },
+  "errNotApiJson": { "message": "該地址回傳了 JSON，但不是 Word Garden API。" },
+  "errWrongServiceUrl5173": { "message": "本機服務地址 $1$ 回傳了網頁而不是 API。5173 是已移除的網頁版埠；擴充功能預設應連線 http://127.0.0.1:3789。", "placeholders": { "1": { "content": "$1" } } },
+  "errWrongServiceUrl": { "message": "本機服務地址 $1$ 回傳了網頁而不是 API。你可能填了某個網頁的地址；擴充功能預設應連線 http://127.0.0.1:3789。", "placeholders": { "1": { "content": "$1" } } },
+  "errContentType": { "message": "本機服務回傳了無法辨識的內容類型（$1$）。", "placeholders": { "1": { "content": "$1" } } },
+  "errContentTypeBare": { "message": "本機服務回傳了無法辨識的內容類型。" },
+  "errInvalidJson": { "message": "本機服務回傳了無效的 JSON。請確認連線的是 Word Garden API。" },
+  "errRequestFailed": { "message": "本機服務請求失敗 ($1$)", "placeholders": { "1": { "content": "$1" } } },
+  "urlIncomplete": { "message": "請輸入完整地址，例如 http://127.0.0.1:3789。" },
+  "urlProtocol": { "message": "本機服務地址必須使用 http:// 或 https://。" },
+  "urlUserInfo": { "message": "本機服務地址不能包含帳號、查詢參數或錨點。" },
+  "urlPath": { "message": "請填寫服務根地址，不要包含 /api/health 等路徑。" },
+  "urlPort5173": { "message": "5173 是已移除的網頁版埠，不是 API 埠。請改為 http://127.0.0.1:3789。" }
 }

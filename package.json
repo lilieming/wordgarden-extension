@@ -4,11 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "vite build && pnpm build:safari",
-    "build:safari": "vite build --config vite.config.safari.ts --mode mac && vite build --config vite.config.safari.ts --mode ios",
+    "build": "node build-copy.mjs && vite build && pnpm build:safari",
+    "build:safari": "node build-copy.mjs && vite build --config vite.config.safari.ts --mode mac && vite build --config vite.config.safari.ts --mode ios",
     "dev": "vite build --watch",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run"
+    "typecheck": "node build-copy.mjs && tsc -p tsconfig.json --noEmit",
+    "test": "node build-copy.mjs && vitest run"
   },
   "dependencies": {
     "@learn-english/shared": "workspace:*"

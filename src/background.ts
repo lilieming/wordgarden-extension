@@ -2,6 +2,7 @@ import type { UpsertEntry } from "@learn-english/shared";
 import type { BackgroundRequest, BackgroundResponse, ServiceConfig } from "./types";
 import { ExtensionApiError, parseApiResponse } from "./api-response";
 import { lookupMeaning, toDictionary } from "./dictionary-lookup";
+import { t } from "./copy.background";
 import { appRelayAvailable } from "./platform";
 
 const DEFAULT_CONFIG: ServiceConfig = { serviceUrl: "http://127.0.0.1:3789" };
@@ -32,6 +33,12 @@ async function getConfig(): Promise<ServiceConfig> {
   return { ...DEFAULT_CONFIG, ...(await chrome.storage.sync.get(DEFAULT_CONFIG)) } as ServiceConfig;
 }
 
+/**
+ * 界面文案：构建期从 `static/_locales` 编进来的自包含模块（`build-copy.mjs`），
+ * 运行时不依赖 `chrome.i18n` —— Safari 里 manifest 的 `__MSG_` 替换是好的，
+ * 但 `getMessage()` 返回空串（2026-10-18 实测）。
+ */
+
 async function api(path: string, init?: RequestInit, serviceUrlOverride?: string): Promise<unknown> {
   const config = await getConfig();
   const serviceUrl = (serviceUrlOverride ?? config.serviceUrl).replace(/\/$/, "");
@@ -42,7 +49,7 @@ async function api(path: string, init?: RequestInit, serviceUrlOverride?: string
       headers: { "content-type": "application/json", ...init?.headers }
     });
   } catch {
-    throw new ExtensionApiError(`无法连接本地服务 ${serviceUrl}。请确认 API 已启动；默认地址是 http://127.0.0.1:3789。`, "SERVICE_UNREACHABLE");
+    throw new ExtensionApiError(t("errServiceUnreachable", serviceUrl), "SERVICE_UNREACHABLE");
   }
   return parseApiResponse(response, serviceUrl);
 }
@@ -61,7 +68,7 @@ async function relayToApp(payload: UpsertEntry): Promise<{ queued: true }> {
     pageTitle: payload.pageTitle
   }) as { ok?: boolean; error?: string } | undefined;
   // 原生外壳没存下就等于没收藏，别一脸诚意地说「已排队」。
-  if (reply && reply.ok === false) throw new ExtensionApiError(reply.error || "Word Garden App 没能存下这个词。", "RELAY_REJECTED");
+  if (reply && reply.ok === false) throw new ExtensionApiError(reply.error || t("errRelayRejected"), "RELAY_REJECTED");
   return { queued: true };
 }
 
@@ -87,7 +94,7 @@ const hasContextMenuApi = "contextMenus" in chrome;
 const hasActionApi = "action" in chrome;
 
 chrome.runtime.onInstalled.addListener(() => {
-  if (hasContextMenuApi) chrome.contextMenus.create({ id: "english-garden-translate", title: chrome.i18n.getMessage("contextMenuTranslate"), contexts: ["selection"] });
+  if (hasContextMenuApi) chrome.contextMenus.create({ id: "english-garden-translate", title: t("contextMenuTranslate"), contexts: ["selection"] });
 });
 
 if (hasContextMenuApi) {
@@ -103,14 +110,14 @@ chrome.runtime.onMessage.addListener((message: BackgroundRequest, _sender, sendR
       switch (message.type) {
         case "lookup-word": sendResponse({ ok: true, data: { meaning: lookupMeaning(await loadDictionary(), message.word) } }); break;
         // iOS 上没有本机服务可问：释义只认扩展自带的词表，别去撞一个必然被拒的连接。
-        case "translate-llm": if (appRelayAvailable) throw new ExtensionApiError("iOS 上的扩展不连本机服务，这个词的释义等回到 App 再补。", "NO_LOCAL_SERVICE"); sendResponse({ ok: true, data: await api("/api/translate", { method: "POST", body: JSON.stringify(message.payload) }) }); break;
+        case "translate-llm": if (appRelayAvailable) throw new ExtensionApiError(t("errNoLocalService"), "NO_LOCAL_SERVICE"); sendResponse({ ok: true, data: await api("/api/translate", { method: "POST", body: JSON.stringify(message.payload) }) }); break;
         case "entry-status": sendResponse({ ok: true, data: appRelayAvailable ? { saved: false, entry: null } : await api(`/api/entries/status?text=${encodeURIComponent(message.text)}&sourceLanguage=${encodeURIComponent(message.sourceLanguage)}`) }); break;
         case "save-entry": sendResponse({ ok: true, data: await saveEntry(message.payload) }); break;
         case "save-video-words": sendResponse({ ok: true, data: await api("/api/video-learning/save-words", { method: "POST", body: JSON.stringify(message.payload) }) }); break;
         case "health": {
           const data = await api("/api/health", undefined, message.serviceUrl);
           if (!data || typeof data !== "object" || !("ok" in data) || data.ok !== true) {
-            throw new ExtensionApiError("该地址返回了 JSON，但不是 Word Garden API。", "NOT_API_SERVER");
+            throw new ExtensionApiError(t("errNotApiJson"), "NOT_API_SERVER");
           }
           sendResponse({ ok: true, data });
           break;
@@ -118,7 +125,7 @@ chrome.runtime.onMessage.addListener((message: BackgroundRequest, _sender, sendR
         case "open-options": await chrome.runtime.openOptionsPage(); sendResponse({ ok: true }); break;
       }
     } catch (error) {
-      sendResponse({ ok: false, error: error instanceof Error ? error.message : "未知错误", code: error && typeof error === "object" && "code" in error ? String(error.code) : undefined });
+      sendResponse({ ok: false, error: error instanceof Error ? error.message : t("errUnknown"), code: error && typeof error === "object" && "code" in error ? String(error.code) : undefined });
     }
   })();
   return true;

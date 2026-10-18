@@ -4,11 +4,11 @@ import type { BackgroundRequest, BackgroundResponse, EntryStatus, WordLookup } f
 import { describeFailure, isStaleExtensionContext } from "./panel-errors";
 import { openChromeTranslator } from "./chrome-translate";
 import { appRelayAvailable } from "./platform";
+// 界面文案：构建期从 static/_locales 编进来的自包含模块（build-copy.mjs）。
+// 运行时不查 chrome.i18n、不 fetch、不发消息 —— Safari 里那三条路都不通。
+import { t } from "./copy.content";
 
 const ROOT_ID = "english-garden-root";
-
-/** 界面文案全在 `static/_locales`，跟着浏览器界面语言走；缺 key 会渲染成空串，由测试兜住。 */
-const t = (key: string): string => chrome.i18n.getMessage(key);
 let selectionState: { text: string; sentence: string; rect: DOMRect } | null = null;
 let translation: TranslateResponse | null = null;
 let isSaved = false;

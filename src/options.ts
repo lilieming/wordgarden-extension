@@ -1,20 +1,29 @@
-import type { BackgroundResponse, ServiceConfig } from "./types";
+import type { BackgroundRequest, BackgroundResponse, ServiceConfig } from "./types";
 import { normalizeServiceUrl, serviceUrlWarning } from "./service-url";
 import { appRelayAvailable } from "./platform";
+import { t } from "./copy.options";
 import "./options.css";
 
 const DEFAULT: ServiceConfig = { serviceUrl: "http://127.0.0.1:3789" };
-const t = (key: string): string => chrome.i18n.getMessage(key);
 const app = document.querySelector<HTMLDivElement>("#app")!;
-const header = `<p class="eyebrow">WORD GARDEN · <span class="extension-version"></span></p><h1>${t("settingsHeading")}</h1>`;
 
-if (appRelayAvailable) {
-  // iOS：这里既没有本机 API 服务可连，也没有地址可填，设置页就只说清楚词去哪儿。
-  app.innerHTML = `<main>${header}
+/**
+ * 界面文案：构建期从 `static/_locales` 编进来的自包含模块（`build-copy.mjs`）。
+ * 不用 `chrome.i18n.getMessage`：Safari 里 manifest 的 `__MSG_` 替换是好的，运行时却返回空串；
+ * 向后台要目录也拿不到回包（2026-10-18 实测：设置页只剩骨架）。
+ */
+render();
+
+function render(): void {
+  const header = `<p class="eyebrow">WORD GARDEN · <span class="extension-version"></span></p><h1>${t("settingsHeading")}</h1>`;
+
+  if (appRelayAvailable) {
+    // iOS：这里既没有本机 API 服务可连，也没有地址可填，设置页就只说清楚词去哪儿。
+    app.innerHTML = `<main>${header}
   <p>${t("iosIntro")}</p>
   <p>${t("iosNote")}</p></main>`;
-} else {
-  app.innerHTML = `<main>${header}
+  } else {
+    app.innerHTML = `<main>${header}
   <p>${t("serviceIntro")}</p>
   <div class="address-guide"><span>${t("apiLabel")}</span><code>http://127.0.0.1:3789</code></div>
   <form>
@@ -23,11 +32,12 @@ if (appRelayAvailable) {
   </form>
   <section><h2>${t("stepsHeading")}</h2><ol><li>${t("step1")}</li><li>${t("step2")}</li><li>${t("step3")}</li></ol></section>
 </main>`;
-  wireServiceUrlForm();
-}
+    wireServiceUrlForm();
+  }
 
-document.title = t("optionsTitle");
-app.querySelector<HTMLElement>(".extension-version")!.textContent = `v${chrome.runtime.getManifest().version}`;
+  document.title = t("optionsTitle");
+  app.querySelector<HTMLElement>(".extension-version")!.textContent = `v${chrome.runtime.getManifest().version}`;
+}
 
 function wireServiceUrlForm(): void {
   const input = app.querySelector<HTMLInputElement>("input")!;
@@ -54,7 +64,7 @@ function wireServiceUrlForm(): void {
 
     input.value = serviceUrl;
     showStatus(t("statusConnecting"));
-    const response = await chrome.runtime.sendMessage({ type: "health", serviceUrl }) as BackgroundResponse;
+    const response = await chrome.runtime.sendMessage({ type: "health", serviceUrl } satisfies BackgroundRequest) as BackgroundResponse;
     if (!response.ok) {
       showStatus(response.error, "error");
       return;
