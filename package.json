@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "vite build",
+    "build": "vite build && pnpm build:safari",
+    "build:safari": "vite build --config vite.config.safari.ts --mode mac && vite build --config vite.config.safari.ts --mode ios",
     "dev": "vite build --watch",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"

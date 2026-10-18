@@ -3,8 +3,12 @@ import type { TranslateResponse, UpsertEntry } from "@learn-english/shared";
 import type { BackgroundRequest, BackgroundResponse, EntryStatus, WordLookup } from "./types";
 import { describeFailure, isStaleExtensionContext } from "./panel-errors";
 import { openChromeTranslator } from "./chrome-translate";
+import { appRelayAvailable } from "./platform";
 
 const ROOT_ID = "english-garden-root";
+
+/** 界面文案全在 `static/_locales`，跟着浏览器界面语言走；缺 key 会渲染成空串，由测试兜住。 */
+const t = (key: string): string => chrome.i18n.getMessage(key);
 let selectionState: { text: string; sentence: string; rect: DOMRect } | null = null;
 let translation: TranslateResponse | null = null;
 let isSaved = false;
@@ -80,7 +84,7 @@ function showTrigger(state: NonNullable<typeof selectionState>): void {
   const ui = ensureRoot();
   ui.querySelectorAll(":not(style)").forEach((node) => node.remove());
   const button = document.createElement("button");
-  button.className = "trigger"; button.textContent = "译"; button.title = "翻译并收藏";
+  button.className = "trigger"; button.textContent = t("triggerLabel"); button.title = t("triggerHelp");
   button.addEventListener("click", (event) => { event.stopPropagation(); void showCard(); });
   ui.append(button); position(state.rect);
 }
@@ -105,13 +109,17 @@ async function resolveTranslation(text: string): Promise<TranslateResponse> {
   if (gloss) return gloss;
   const builtIn = await chromeTranslate(text);
   if (builtIn) return builtIn;
-  return send<TranslateResponse>({ type: "translate-llm", payload: { text, sourceLanguage: "en", targetLanguage: "zh-CN" } });
+  const request = send<TranslateResponse>({ type: "translate-llm", payload: { text, sourceLanguage: "en", targetLanguage: "zh-CN" } });
+  // Safari 版没有大模型 Key 也必须能收藏：iOS 上根本没有本机服务可问，
+  // 释义留空交给 App 入库时补，别把「暂时无法翻译」当成不让人收词的理由。
+  return appRelayAvailable ? request.catch(() => ({ translation: "", provider: "llm" as const })) : request;
 }
 
 function providerLabel(result: TranslateResponse): string {
-  if (result.provider === "dictionary") return "内置词典";
-  if (result.provider === "chrome") return "Chrome 内置翻译";
-  return `大模型${result.model ? ` · ${result.model}` : ""}`;
+  if (!result.translation) return t("glossFromApp");
+  if (result.provider === "dictionary") return t("providerDictionary");
+  if (result.provider === "chrome") return t("providerChrome");
+  return `${t("providerLlm")}${result.model ? ` · ${result.model}` : ""}`;
 }
 
 async function showCard(): Promise<void> {
@@ -120,7 +128,7 @@ async function showCard(): Promise<void> {
   const ui = ensureRoot();
   ui.querySelectorAll(":not(style)").forEach((node) => node.remove());
   const card = document.createElement("div"); card.className = "card";
-  card.innerHTML = `<div class="head"><div><div class="label">WORD GARDEN</div><div class="original"></div></div><button class="close" aria-label="关闭">×</button></div><div class="translation">正在翻译…</div><div class="provider"></div><div class="actions"><button class="heart" title="收藏">♡</button><button class="primary" disabled>翻译中…</button></div><div class="status" hidden></div><button class="settings" hidden>打开设置</button>`;
+  card.innerHTML = `<div class="head"><div><div class="label">WORD GARDEN</div><div class="original"></div></div><button class="close" aria-label="${t("close")}">×</button></div><div class="translation">${t("translating")}</div><div class="provider"></div><div class="actions"><button class="heart" title="${t("save")}">♡</button><button class="primary" disabled>${t("translating")}</button></div><div class="status" hidden></div><button class="settings" hidden>${t("openSettings")}</button>`;
   (card.querySelector(".original") as HTMLElement).textContent = state.text;
   ui.append(card);
   const cardWidth = Math.min(390, window.innerWidth - 24);
@@ -139,29 +147,31 @@ async function showCard(): Promise<void> {
       ? { translation: savedStatus.entry.translation, provider: savedStatus.entry.translationProvider }
       : await resolveTranslation(state.text);
     translation = result; isSaved = savedStatus.saved;
-    (card.querySelector(".translation") as HTMLElement).textContent = result.translation;
+    (card.querySelector(".translation") as HTMLElement).textContent = result.translation || t("glossMissing");
     (card.querySelector(".provider") as HTMLElement).textContent = providerLabel(result);
     heart.textContent = isSaved ? "♥" : "♡"; heart.classList.toggle("saved", isSaved);
-    primary.disabled = isSaved; primary.textContent = isSaved ? "已收藏" : "收藏到本地";
+    primary.disabled = isSaved; primary.textContent = isSaved ? t("saved") : t("saveToGarden");
   } catch (error) {
-    (card.querySelector(".translation") as HTMLElement).textContent = "暂时无法翻译";
-    primary.disabled = true; primary.textContent = "无法收藏";
-    status.hidden = false; status.classList.add("error"); status.textContent = describeFailure(error, "翻译失败");
+    (card.querySelector(".translation") as HTMLElement).textContent = t("translationUnavailable");
+    primary.disabled = true; primary.textContent = t("cannotSave");
+    status.hidden = false; status.classList.add("error"); status.textContent = describeFailure(error, { stale: t("staleExtension"), fallback: t("translateFailed") });
     // 旧脚本失效时"打开设置"只会把人带偏，只有真的连接/配置问题才露出这个入口。
     settings.hidden = isStaleExtensionContext(error);
   }
   const save = async () => {
     if (!translation || isSaved) return;
-    heart.disabled = true; primary.disabled = true; primary.textContent = "正在保存…";
+    heart.disabled = true; primary.disabled = true; primary.textContent = t("saving");
     const payload: UpsertEntry = {
       text: state.text, sourceLanguage: "en", targetLanguage: "zh-CN", translation: translation.translation,
       translationProvider: translation.provider, pageTitle: document.title, url: location.href, contextSentence: state.sentence
     };
     try {
-      await send({ type: "save-entry", payload }); isSaved = true; heart.textContent = "♥"; heart.classList.add("saved"); primary.textContent = "已收藏";
-      status.hidden = false; status.classList.remove("error"); status.textContent = "已保存到你的本地词库。";
+      const saved = await send<{ queued?: boolean }>({ type: "save-entry", payload });
+      isSaved = true; heart.textContent = "♥"; heart.classList.add("saved"); primary.textContent = t("saved");
+      status.hidden = false; status.classList.remove("error");
+      status.textContent = saved?.queued ? t("queuedForApp") : t("savedLocal");
     } catch (error) {
-      heart.disabled = false; primary.disabled = false; primary.textContent = "重试收藏"; status.hidden = false; status.classList.add("error"); status.textContent = describeFailure(error, "保存失败"); settings.hidden = isStaleExtensionContext(error);
+      heart.disabled = false; primary.disabled = false; primary.textContent = t("retrySave"); status.hidden = false; status.classList.add("error"); status.textContent = describeFailure(error, { stale: t("staleExtension"), fallback: t("saveFailed") }); settings.hidden = isStaleExtensionContext(error);
     }
   };
   heart.addEventListener("click", save); primary.addEventListener("click", save);

@@ -1,8 +1,18 @@
+import type { UpsertEntry } from "@learn-english/shared";
 import type { BackgroundRequest, BackgroundResponse, ServiceConfig } from "./types";
 import { ExtensionApiError, parseApiResponse } from "./api-response";
 import { lookupMeaning, toDictionary } from "./dictionary-lookup";
+import { appRelayAvailable } from "./platform";
 
 const DEFAULT_CONFIG: ServiceConfig = { serviceUrl: "http://127.0.0.1:3789" };
+
+/**
+ * Safari 网页扩展的原生外壳（app extension）收消息用的名字。
+ *
+ * Chrome/Firefox 把它当本机注册的 native host 名，Safari 则忽略这个参数、一律投给
+ * 自己的容器 App —— 所以填 App 的 bundle id 只是把这个必填参数写得说得通。
+ */
+const APP_RELAY_ID = "app.wordgarden.safari";
 
 let dictionary: Promise<Map<string, string>> | null = null;
 
@@ -37,23 +47,65 @@ async function api(path: string, init?: RequestInit, serviceUrlOverride?: string
   return parseApiResponse(response, serviceUrl);
 }
 
+/**
+ * 把词交给宿主 App 的 app extension 排队，等 App 回前台入库。
+ *
+ * 只有 iOS 构建会走到这里：App 一退后台就挂起，本机根本没有服务可打。macOS 不排队是因为
+ * 主 App 要读那条共享钥匙串就得加 keychain-access-groups，而动的正是它已存 API Key 那把组，
+ * 不该在这个改动里顺手碰；macOS 继续要求服务在跑，连不上就照实报错。
+ */
+async function relayToApp(payload: UpsertEntry): Promise<{ queued: true }> {
+  const reply = await chrome.runtime.sendNativeMessage(APP_RELAY_ID, {
+    text: payload.text,
+    pageURL: payload.url,
+    pageTitle: payload.pageTitle
+  }) as { ok?: boolean; error?: string } | undefined;
+  // 原生外壳没存下就等于没收藏，别一脸诚意地说「已排队」。
+  if (reply && reply.ok === false) throw new ExtensionApiError(reply.error || "Word Garden App 没能存下这个词。", "RELAY_REJECTED");
+  return { queued: true };
+}
+
+/**
+ * 收藏只有两条路，且都不带空译文去 PUT：服务端按 schema 拒收空译文，
+ * 没释义的词只能排队让 App 补。
+ */
+async function saveEntry(payload: UpsertEntry): Promise<unknown> {
+  const put = () => api("/api/entries", { method: "PUT", body: JSON.stringify(payload) });
+  if (!appRelayAvailable) return put();
+  if (!payload.translation.trim()) return relayToApp(payload);
+  try {
+    return await put();
+  } catch (error) {
+    // 只有「服务没开」才换通道；地址填错这类问题照原样报出来，别悄悄改道。
+    if (!(error instanceof ExtensionApiError) || error.code !== "SERVICE_UNREACHABLE") throw error;
+    return relayToApp(payload).catch(() => { throw error; });
+  }
+}
+
+// iOS 上这两个 API 整个不存在，摸一下就是 service worker 启动即崩，后面消息全收不到。
+const hasContextMenuApi = "contextMenus" in chrome;
+const hasActionApi = "action" in chrome;
+
 chrome.runtime.onInstalled.addListener(() => {
-  chrome.contextMenus.create({ id: "english-garden-translate", title: "在 Word Garden 中翻译", contexts: ["selection"] });
+  if (hasContextMenuApi) chrome.contextMenus.create({ id: "english-garden-translate", title: chrome.i18n.getMessage("contextMenuTranslate"), contexts: ["selection"] });
 });
 
-chrome.contextMenus.onClicked.addListener((_info, tab) => {
-  if (tab?.id) void chrome.tabs.sendMessage(tab.id, { type: "show-selection" }).catch(() => undefined);
-});
-chrome.action.onClicked.addListener(() => chrome.runtime.openOptionsPage());
+if (hasContextMenuApi) {
+  chrome.contextMenus.onClicked.addListener((_info, tab) => {
+    if (tab?.id) void chrome.tabs.sendMessage(tab.id, { type: "show-selection" }).catch(() => undefined);
+  });
+}
+if (hasActionApi) chrome.action.onClicked.addListener(() => chrome.runtime.openOptionsPage());
 
 chrome.runtime.onMessage.addListener((message: BackgroundRequest, _sender, sendResponse: (value: BackgroundResponse) => void) => {
   void (async () => {
     try {
       switch (message.type) {
         case "lookup-word": sendResponse({ ok: true, data: { meaning: lookupMeaning(await loadDictionary(), message.word) } }); break;
-        case "translate-llm": sendResponse({ ok: true, data: await api("/api/translate", { method: "POST", body: JSON.stringify(message.payload) }) }); break;
-        case "entry-status": sendResponse({ ok: true, data: await api(`/api/entries/status?text=${encodeURIComponent(message.text)}&sourceLanguage=${encodeURIComponent(message.sourceLanguage)}`) }); break;
-        case "save-entry": sendResponse({ ok: true, data: await api("/api/entries", { method: "PUT", body: JSON.stringify(message.payload) }) }); break;
+        // iOS 上没有本机服务可问：释义只认扩展自带的词表，别去撞一个必然被拒的连接。
+        case "translate-llm": if (appRelayAvailable) throw new ExtensionApiError("iOS 上的扩展不连本机服务，这个词的释义等回到 App 再补。", "NO_LOCAL_SERVICE"); sendResponse({ ok: true, data: await api("/api/translate", { method: "POST", body: JSON.stringify(message.payload) }) }); break;
+        case "entry-status": sendResponse({ ok: true, data: appRelayAvailable ? { saved: false, entry: null } : await api(`/api/entries/status?text=${encodeURIComponent(message.text)}&sourceLanguage=${encodeURIComponent(message.sourceLanguage)}`) }); break;
+        case "save-entry": sendResponse({ ok: true, data: await saveEntry(message.payload) }); break;
         case "save-video-words": sendResponse({ ok: true, data: await api("/api/video-learning/save-words", { method: "POST", body: JSON.stringify(message.payload) }) }); break;
         case "health": {
           const data = await api("/api/health", undefined, message.serviceUrl);
