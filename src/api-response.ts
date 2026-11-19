@@ -1,4 +1,5 @@
 import type { ApiErrorBody } from "@learn-english/shared";
+import { t } from "./copy.background";
 
 export class ExtensionApiError extends Error {
   constructor(message: string, public readonly code?: string) {
@@ -11,10 +12,7 @@ function wrongServiceMessage(serviceUrl: string): string {
   const port = (() => {
     try { return new URL(serviceUrl).port; } catch { return ""; }
   })();
-  const portHint = port === "5173"
-    ? "5173 是已经移除的网页版端口；"
-    : "你可能填写了某个网页的地址；";
-  return `本地服务地址 ${serviceUrl} 返回了网页而不是 API。${portHint}扩展默认应连接 http://127.0.0.1:3789。`;
+  return port === "5173" ? t("errWrongServiceUrl5173", serviceUrl) : t("errWrongServiceUrl", serviceUrl);
 }
 
 export async function parseApiResponse(response: Response, serviceUrl: string): Promise<unknown> {
@@ -27,22 +25,20 @@ export async function parseApiResponse(response: Response, serviceUrl: string): 
 
   if (!contentType.includes("json")) {
     const detail = text.trim().slice(0, 160);
-    throw new ExtensionApiError(
-      `本地服务返回了无法识别的内容类型${contentType ? ` (${contentType})` : ""}${detail ? `：${detail}` : "。"}`,
-      "INVALID_CONTENT_TYPE"
-    );
+    const base = contentType ? t("errContentType", contentType) : t("errContentTypeBare");
+    throw new ExtensionApiError(detail ? `${base} ${detail}` : base, "INVALID_CONTENT_TYPE");
   }
 
   let body: unknown;
   try {
     body = text ? JSON.parse(text) : null;
   } catch {
-    throw new ExtensionApiError("本地服务返回了无效 JSON。请确认连接的是 Word Garden API。", "INVALID_JSON");
+    throw new ExtensionApiError(t("errInvalidJson"), "INVALID_JSON");
   }
 
   if (!response.ok) {
     const apiError = body as ApiErrorBody | null;
-    throw new ExtensionApiError(apiError?.error?.message ?? `本地服务请求失败 (${response.status})`, apiError?.error?.code);
+    throw new ExtensionApiError(apiError?.error?.message ?? t("errRequestFailed", response.status), apiError?.error?.code);
   }
   return body;
 }

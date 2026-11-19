@@ -17,7 +17,7 @@ describe("YouTube panel selection interaction", () => {
   it("provides All and Unknown tabs with live counts", () => {
     expect(source).toContain('data-view="all"');
     expect(source).toContain('data-view="unknown"');
-    expect(source).toContain("不认识 (${unknownWordCount()})");
+    expect(source).toContain('t("unknownWordsTab")} (${unknownWordCount()})');
     expect(source).toContain('wordView === "unknown"');
   });
 

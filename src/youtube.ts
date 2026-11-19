@@ -3,6 +3,8 @@ import type { BackgroundRequest, BackgroundResponse, WordLookup } from "./types"
 import { buildYouTubeWords, formatTimestamp, readableCaptionText, tokenizeCaption, type YouTubeCaptionSegment, type YouTubeWord, type YouTubeWordOccurrence } from "./youtube-words";
 import { createWordScrollPositions, rememberWordScroll, restoredWordScroll, type WordView } from "./youtube-panel-scroll";
 import { captionIndexAt } from "./youtube-caption-sync";
+import { hasCaptionBridge } from "./youtube-caption-bridge";
+import { t } from "./copy.content";
 import { openChromeTranslator, type ChromeTranslator } from "./chrome-translate";
 
 interface PageTranscript {
@@ -20,7 +22,9 @@ interface TranscriptMessage {
   type: "TRANSCRIPT_RESULT" | "VIDEO_NAVIGATED";
   requestId?: string;
   ok?: boolean;
-  error?: string;
+  /** 页面侧只回码与细节，话在这里按界面语言说。 */
+  code?: string;
+  detail?: string;
   videoId?: string | null;
   data?: PageTranscript;
 }
@@ -107,8 +111,8 @@ function renderLauncher(): void {
   ui.querySelectorAll(":not(style)").forEach((node) => node.remove());
   const button = document.createElement("button");
   button.className = "launcher";
-  button.textContent = "学词";
-  button.title = "用 Word Garden 学习当前视频";
+  button.textContent = t("youtubeLauncherLabel");
+  button.title = t("youtubeLauncherHelp");
   button.addEventListener("click", () => { renderPanel(); void requestTranscript(); });
   ui.append(button);
 }
@@ -143,26 +147,24 @@ function updatePanelControls(panel: HTMLElement): void {
   const saveButton = panel.querySelector<HTMLButtonElement>(".save");
   if (saveButton) {
     saveButton.disabled = selected.size === 0;
-    saveButton.textContent = `加入词库 (${selected.size})`;
+    saveButton.textContent = `${t("addSelected")} (${selected.size})`;
   }
   const allTab = panel.querySelector<HTMLButtonElement>('[data-view="all"]');
   const unknownTab = panel.querySelector<HTMLButtonElement>('[data-view="unknown"]');
   const timelineTab = panel.querySelector<HTMLButtonElement>('[data-view="timeline"]');
   if (allTab) {
-    allTab.textContent = `全部单词 (${words.length})`;
+    allTab.textContent = `${t("allWordsTab")} (${words.length})`;
     allTab.classList.toggle("active", wordView === "all");
   }
   if (unknownTab) {
-    unknownTab.textContent = `不认识 (${unknownWordCount()})`;
+    unknownTab.textContent = `${t("unknownWordsTab")} (${unknownWordCount()})`;
     unknownTab.classList.toggle("active", wordView === "unknown");
   }
   if (timelineTab) timelineTab.classList.toggle("active", wordView === "timeline");
   const context = panel.querySelector<HTMLElement>(".context");
   if (context && wordView === "timeline") context.hidden = true;
   const footer = panel.querySelector<HTMLElement>(".footer");
-  if (footer) footer.textContent = wordView === "timeline"
-    ? "点单词先记进「不认识」并显示中文 · 攒够了按「加入词库」统一提交 · 点时间戳只听该句"
-    : "点击单词：跳到下一处并重播 · 勾选“不认识”：批量加入本地词库";
+  if (footer) footer.textContent = wordView === "timeline" ? t("footerTimeline") : t("footerWords");
 }
 
 function rememberCurrentWordScroll(panel: HTMLElement, view: WordView = wordView): void {
@@ -196,7 +198,7 @@ function renderWordList(panel: HTMLElement): void {
   if (filtered.length === 0) {
     const empty = document.createElement("div");
     empty.className = "empty word-list-empty";
-    empty.textContent = wordView === "unknown" ? "还没有标记不认识的单词。" : "没有匹配的单词。";
+    empty.textContent = wordView === "unknown" ? t("emptyUnknownList") : t("emptyWordSearch");
     list.append(empty);
   } else {
     for (const item of filtered) list.append(createWordCard(item));
@@ -226,7 +228,7 @@ function renderCaptionStream(list: HTMLElement): void {
   if (lines === 0) {
     const empty = document.createElement("div");
     empty.className = "empty";
-    empty.textContent = "没有匹配的字幕。";
+    empty.textContent = t("emptyCaptionSearch");
     list.append(empty);
   }
   restoreCurrentWordScroll(list);
@@ -315,7 +317,7 @@ function onCaptionClick(event: Event): void {
 
 function playCaptionSegment(segment: YouTubeCaptionSegment): void {
   const video = document.querySelector<HTMLVideoElement>("video.html5-main-video, video");
-  if (!video) { showPanelError("没有找到 YouTube 播放器，请刷新页面后重试。"); return; }
+  if (!video) { showPanelError(t("noPlayer")); return; }
   if (replayTimer !== null) window.clearTimeout(replayTimer);
   video.currentTime = Math.max(0, segment.offset);
   void video.play().catch(() => undefined);
@@ -414,10 +416,10 @@ function renderPanel(): void {
   ui.querySelectorAll(":not(style)").forEach((node) => node.remove());
   const panel = document.createElement("section"); panel.className = "panel";
   panel.innerHTML = `
-    <header class="head"><div><p class="eyebrow">WORD GARDEN</p><h2>当前视频学单词</h2></div><div class="head-actions"><button class="reload" title="重新读取字幕">↻</button><button class="close" title="收起">×</button></div></header>
-    ${!transcript ? `<button class="load" ${loading ? "disabled" : ""}>${loading ? "正在读取当前账号可见字幕…" : "读取当前视频字幕"}</button>` : ""}
+    <header class="head"><div><p class="eyebrow">WORD GARDEN</p><h2>${t("youtubePanelTitle")}</h2></div><div class="head-actions"><button class="reload" title="${t("reloadCaptionsHelp")}">↻</button><button class="close" title="${t("collapseHelp")}">×</button></div></header>
+    ${!transcript ? `<button class="load" ${loading ? "disabled" : ""}>${loading ? t("loadingCaptions") : t("loadCaptions")}</button>` : ""}
     ${error ? `<div class="status error"></div>` : ""}${notice ? `<div class="status notice"></div>` : ""}
-    ${transcript ? `<div class="meta"><strong></strong><br><span>${words.length} 个不重复单词 · ${transcript.language}</span></div><nav class="word-tabs"><button class="word-tab" data-view="all"></button><button class="word-tab" data-view="unknown"></button><button class="word-tab" data-view="timeline">时间线</button></nav><div class="tools"><input class="filter" placeholder="筛选单词…" value=""><button class="save" ${selected.size === 0 ? "disabled" : ""}>加入词库 (${selected.size})</button></div><div class="context" ${activeWord ? "" : "hidden"}></div><div class="words"></div><footer class="footer">点击单词：跳到下一处并重播 · 勾选“不认识”：批量加入本地词库</footer>` : `<div class="empty">直接读取你登录状态下当前 YouTube 页面可见的英文字幕。</div>`}
+    ${transcript ? `<div class="meta"><strong></strong><br><span>${t("uniqueWordsCount", String(words.length))} · ${transcript.language}</span></div><nav class="word-tabs"><button class="word-tab" data-view="all"></button><button class="word-tab" data-view="unknown"></button><button class="word-tab" data-view="timeline">${t("timelineTab")}</button></nav><div class="tools"><input class="filter" placeholder="${t("filterPlaceholder")}" value=""><button class="save" ${selected.size === 0 ? "disabled" : ""}>${t("addSelected")} (${selected.size})</button></div><div class="context" ${activeWord ? "" : "hidden"}></div><div class="words"></div><footer class="footer">${t("footerWords")}</footer>` : `<div class="empty">${t("panelEmptyHint")}</div>`}
   `;
   ui.append(panel);
   panel.querySelector<HTMLButtonElement>(".close")?.addEventListener("click", renderLauncher);
@@ -470,7 +472,7 @@ function createWordCard(item: YouTubeWord): HTMLElement {
   const strong = document.createElement("strong"); strong.textContent = item.word;
   const gloss = document.createElement("span"); gloss.className = "gloss"; gloss.textContent = glosses.get(item.word) ?? "";
   const time = document.createElement("span"); time.className = "time"; time.textContent = formatTimestamp(occurrence.offset);
-  const count = document.createElement("span"); count.className = "count"; count.textContent = `出现 ${item.count} 次${item.count > 1 ? " · 再点下一处" : ""}`;
+  const count = document.createElement("span"); count.className = "count"; count.textContent = t("wordOccurrences", String(item.count)) + (item.count > 1 ? t("nextOccurrenceHint") : "");
   play.append(strong, gloss, time, count); play.addEventListener("click", () => playWord(item));
   const label = document.createElement("label"); label.className = "pick";
   const checkbox = document.createElement("input"); checkbox.type = "checkbox"; checkbox.checked = isUnknownWord(item.word); checkbox.disabled = saved.has(item.word);
@@ -490,7 +492,7 @@ function createWordCard(item: YouTubeWord): HTMLElement {
       if (list && list.querySelectorAll(".word").length === 0) {
         const empty = document.createElement("div");
         empty.className = "empty word-list-empty";
-        empty.textContent = "还没有标记不认识的单词。";
+        empty.textContent = t("emptyUnknownList");
         list.append(empty);
       }
       if (list) {
@@ -499,8 +501,22 @@ function createWordCard(item: YouTubeWord): HTMLElement {
       }
     }
   });
-  const text = document.createElement("span"); text.textContent = saved.has(item.word) ? "已加入" : "不认识";
+  const text = document.createElement("span"); text.textContent = saved.has(item.word) ? t("alreadyAdded") : t("unknownWordsTab");
   label.append(checkbox, text); card.append(play, label); return card;
+}
+
+/** 桥回来的码翻成人话；认不出的码落到一句通用失败，不会露出空白。 */
+function captionError(code: string | undefined, detail: string | undefined): string {
+  let text: string;
+  switch (code) {
+    case "errNoVideoPage": text = t("errNoVideoPage"); break;
+    case "errPlayerNotReady": text = t("errPlayerNotReady"); break;
+    case "errNoCaptions": text = t("errNoCaptions"); break;
+    case "errCaptionHttp": text = t("errCaptionHttp"); break;
+    case "errTrackRead": text = t("errTrackRead"); break;
+    default: text = t("captionReadFailed");
+  }
+  return detail ? `${text} (${detail})` : text;
 }
 
 async function requestTranscript(): Promise<void> {
@@ -508,12 +524,12 @@ async function requestTranscript(): Promise<void> {
   const requestId = crypto.randomUUID();
   try {
     const result = await new Promise<PageTranscript>((resolve, reject) => {
-      const timeout = window.setTimeout(() => { cleanup(); reject(new Error("读取字幕超时。请确认视频已开始加载，或先打开 YouTube 的“显示文字记录”。")); }, 15_000);
+      const timeout = window.setTimeout(() => { cleanup(); reject(new Error(t("captionsTimeout"))); }, 15_000);
       const onMessage = (event: MessageEvent<TranscriptMessage>) => {
         const message = event.data;
         if (event.source !== window || message?.source !== "english-garden-youtube-page" || message.type !== "TRANSCRIPT_RESULT" || message.requestId !== requestId) return;
         cleanup();
-        if (message.ok && message.data) resolve(message.data); else reject(new Error(message.error ?? "字幕读取失败"));
+        if (message.ok && message.data) resolve(message.data); else reject(new Error(captionError(message.code, message.detail)));
       };
       const cleanup = () => { window.clearTimeout(timeout); window.removeEventListener("message", onMessage as EventListener); };
       window.addEventListener("message", onMessage as EventListener);
@@ -521,10 +537,10 @@ async function requestTranscript(): Promise<void> {
     });
     transcript = result;
     words = buildYouTubeWords(result.segments);
-    if (words.length === 0) throw new Error("字幕中没有识别到英文单词。");
-    notice = `已从当前登录页面读取 ${words.length} 个不重复单词。`;
+    if (words.length === 0) throw new Error(t("noEnglishWords"));
+    notice = t("captionsRead", String(words.length));
   } catch (cause) {
-    error = cause instanceof Error ? cause.message : "字幕读取失败";
+    error = cause instanceof Error ? cause.message : t("captionReadFailed");
   } finally { loading = false; renderPanel(); }
 }
 
@@ -538,7 +554,7 @@ function playWord(item: YouTubeWord): void {
 function playOccurrence(item: YouTubeWord, occurrence: YouTubeWordOccurrence): void {
   activeWord = item.word;
   const video = document.querySelector<HTMLVideoElement>("video.html5-main-video, video");
-  if (!video) { showPanelError("没有找到 YouTube 播放器，请刷新页面后重试。"); return; }
+  if (!video) { showPanelError(t("noPlayer")); return; }
   if (replayTimer !== null) window.clearTimeout(replayTimer);
   video.currentTime = Math.max(0, occurrence.offset - 0.6);
   void video.play().catch(() => undefined);
@@ -555,7 +571,7 @@ async function saveSelectedWords(): Promise<void> {
 async function saveWords(chosen: YouTubeWord[], onAccepted?: () => void): Promise<boolean> {
   if (!transcript || chosen.length === 0 || saving) return false;
   saving = true;
-  error = ""; notice = "正在翻译并保存…"; renderPanel();
+  error = ""; notice = t("translatingAndSaving"); renderPanel();
   let created = 0;
   let withTranslation = 0;
   try {
@@ -593,11 +609,11 @@ async function saveWords(chosen: YouTubeWord[], onAccepted?: () => void): Promis
     }
     for (const item of chosen) saved.add(item.word);
     onAccepted?.();
-    notice = `已加入 ${chosen.length} 个单词，其中 ${created} 个是新词。`;
-    if (withTranslation < chosen.length) notice += ` ${chosen.length - withTranslation} 个还没有中文释义，配好大模型 API Key 后可补。`;
+    notice = t("addedWords", String(chosen.length), String(created));
+    if (withTranslation < chosen.length) notice += t("missingGloss", String(chosen.length - withTranslation));
     return true;
   } catch (cause) {
-    notice = ""; error = cause instanceof Error ? cause.message : "加入词库失败";
+    notice = ""; error = cause instanceof Error ? cause.message : t("addFailed");
     return false;
   } finally {
     saving = false;
@@ -611,7 +627,8 @@ interface YouTubeExtensionWindow extends Window {
 
 const extensionWindow = window as YouTubeExtensionWindow;
 const isYoutubeHost = location.hostname === "www.youtube.com" || location.hostname === "m.youtube.com";
-if (isYoutubeHost && !extensionWindow.__englishGardenYoutubeBootstrapped) {
+
+if (isYoutubeHost && hasCaptionBridge(chrome.runtime.getManifest()) && !extensionWindow.__englishGardenYoutubeBootstrapped) {
   extensionWindow.__englishGardenYoutubeBootstrapped = true;
   window.addEventListener("message", (event: MessageEvent<TranscriptMessage>) => {
     if (event.source === window && event.data?.source === "english-garden-youtube-page" && event.data.type === "VIDEO_NAVIGATED") resetForNavigation();

@@ -1,4 +1,4 @@
-import { fetchCaptionSegments } from "./youtube-captions";
+import { CaptionFailure, fetchCaptionSegments } from "./youtube-captions";
 interface CaptionTrack {
   baseUrl?: string;
   languageCode?: string;
@@ -93,22 +93,19 @@ async function loadCaptionTrack(track: CaptionTrack): Promise<Array<{ text: stri
 
 async function loadTranscript() {
   const videoId = currentVideoId();
-  if (!videoId) throw new Error("请先打开一个 YouTube 视频页面。");
+  if (!videoId) throw new CaptionFailure("errNoVideoPage");
   const playerResponse = await waitForPlayerResponse();
-  if (!playerResponse) throw new Error("YouTube 播放器尚未准备好，请稍后重试。");
+  if (!playerResponse) throw new CaptionFailure("errPlayerNotReady");
   const tracks = playerResponse.captions?.playerCaptionsTracklistRenderer?.captionTracks ?? [];
   const track = chooseEnglishTrack(tracks);
   let segments: Array<{ text: string; offset: number; duration: number }> = [];
   let trackError = "";
   if (track) {
     try { segments = await loadCaptionTrack(track); }
-    catch (error) { trackError = error instanceof Error ? error.message : "字幕轨道读取失败"; }
+    catch (error) { trackError = error instanceof CaptionFailure ? error.detail || error.code : String(error); }
   }
   if (segments.length === 0) segments = await readRenderedTranscript();
-  if (segments.length === 0) {
-    const detail = trackError ? `（${trackError}）` : "";
-    throw new Error(`已找到字幕入口，但没有读取到字幕内容${detail}。请先在 YouTube 中打开“显示文字记录”，再点击重新读取。`);
-  }
+  if (segments.length === 0) throw new CaptionFailure("errNoCaptions", trackError);
   return {
     videoId,
     title: playerResponse.videoDetails?.title ?? document.title.replace(/\s*-\s*YouTube$/, ""),
@@ -120,12 +117,23 @@ async function loadTranscript() {
   };
 }
 
+interface TranscriptFailure {
+  code: string;
+  detail: string;
+}
+
+/** 任何异常都收敛成一个码：话由面板那边按界面语言说。 */
+function asFailure(error: unknown): TranscriptFailure {
+  if (error instanceof CaptionFailure) return { code: error.code, detail: error.detail };
+  return { code: "captionReadFailed", detail: error instanceof Error ? error.message : String(error) };
+}
+
 window.addEventListener("message", (event) => {
   if (event.source !== window || event.data?.source !== REQUEST_SOURCE || event.data?.type !== "REQUEST_TRANSCRIPT") return;
   const requestId = String(event.data.requestId ?? "");
   void loadTranscript()
     .then((data) => window.postMessage({ source: RESPONSE_SOURCE, type: "TRANSCRIPT_RESULT", requestId, ok: true, data }, "*"))
-    .catch((error) => window.postMessage({ source: RESPONSE_SOURCE, type: "TRANSCRIPT_RESULT", requestId, ok: false, error: error instanceof Error ? error.message : "字幕读取失败" }, "*"));
+    .catch((error: unknown) => window.postMessage({ source: RESPONSE_SOURCE, type: "TRANSCRIPT_RESULT", requestId, ok: false, ...asFailure(error) }, "*"));
 });
 
 document.addEventListener("yt-navigate-finish", () => {
