@@ -1,11 +1,12 @@
 {
   "name": "@learn-english/extension",
-  "version": "0.1.0",
+  "version": "0.1.11",
   "private": true,
   "type": "module",
   "scripts": {
     "build": "node build-copy.mjs && vite build && pnpm build:safari",
     "build:safari": "node build-copy.mjs && vite build --config vite.config.safari.ts --mode mac && vite build --config vite.config.safari.ts --mode ios",
+    "package:release": "pnpm build && node package-release.mjs",
     "dev": "vite build --watch",
     "typecheck": "node build-copy.mjs && tsc -p tsconfig.json --noEmit",
     "test": "node build-copy.mjs && vitest run"

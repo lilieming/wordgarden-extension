@@ -4,6 +4,7 @@ import type { BackgroundRequest, BackgroundResponse, EntryStatus, WordLookup } f
 import { describeFailure, isStaleExtensionContext } from "./panel-errors";
 import { openChromeTranslator } from "./chrome-translate";
 import { appRelayAvailable } from "./platform";
+import { isEnglishSelection } from "./selection-language";
 // 界面文案：构建期从 static/_locales 编进来的自包含模块（build-copy.mjs）。
 // 运行时不查 chrome.i18n、不 fetch、不发消息 —— Safari 里那三条路都不通。
 import { t } from "./copy.content";
@@ -41,7 +42,7 @@ function sentenceAround(range: Range, selectedText: string): string {
 function captureSelection(): typeof selectionState {
   const selection = window.getSelection();
   const text = selection?.toString().replace(/\s+/g, " ").trim() ?? "";
-  if (!selection || selection.rangeCount === 0 || !text || text.length > 10_000) return null;
+  if (!selection || selection.rangeCount === 0 || !text || text.length > 10_000 || !isEnglishSelection(text)) return null;
   const range = selection.getRangeAt(0);
   const rect = range.getBoundingClientRect();
   if (!rect.width && !rect.height) return null;
@@ -179,13 +180,24 @@ async function showCard(): Promise<void> {
 
 function prepareSelection(): void {
   const state = captureSelection();
-  if (!state) return;
+  if (!state) {
+    close();
+    return;
+  }
   selectionState = state; translation = null; isSaved = false; showTrigger(state);
 }
 
 document.addEventListener("mouseup", (event) => {
   if (root && event.composedPath().includes(root)) return;
-  window.setTimeout(() => { const state = captureSelection(); if (state) { selectionState = state; showTrigger(state); } }, 10);
+  window.setTimeout(() => {
+    const state = captureSelection();
+    if (state) {
+      selectionState = state;
+      showTrigger(state);
+    } else {
+      close();
+    }
+  }, 10);
 });
 document.addEventListener("mousedown", (event) => { if (root && !event.composedPath().includes(root)) close(); });
 document.addEventListener("keydown", (event) => { if (event.key === "Escape") close(); });

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "__MSG_extensionName__",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "description": "__MSG_extensionDescription__",
   "default_locale": "en",
   "permissions": [
@@ -43,5 +43,5 @@
     "64": "icons/icon_64.png",
     "128": "icons/icon_128.png"
   },
-  "version_name": "0.1.10 · 通过 Word Garden App 入库"
+  "version_name": "0.1.11 · 仅对英文划词显示译按钮"
 }
