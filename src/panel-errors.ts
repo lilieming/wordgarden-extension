@@ -15,11 +15,12 @@ export function isStaleExtensionContext(error: unknown): boolean {
   return /extension context invalidated|receiving end does not exist|could not establish connection/i.test(message);
 }
 
-/** 把底层报错翻译成可操作的中文提示；认不出来就用原文。 */
-export function describeFailure(error: unknown, fallback: string): string {
-  if (isStaleExtensionContext(error)) {
-    return "扩展刚被重新加载过，这个页面里跑的还是旧脚本。刷新页面（⌘R / F5）就能继续收藏。";
-  }
+/**
+ * 把底层报错翻译成可操作的提示；认不出来就用原文。
+ * 文案由调用方给（那边才拿得到 `chrome.i18n`），这个模块本身不认识语言。
+ */
+export function describeFailure(error: unknown, copy: { stale: string; fallback: string }): string {
+  if (isStaleExtensionContext(error)) return copy.stale;
   const message = error instanceof Error ? error.message : "";
-  return message || fallback;
+  return message || copy.fallback;
 }

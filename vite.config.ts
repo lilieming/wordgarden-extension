@@ -1,9 +1,10 @@
 import { defineConfig } from "vite";
 import { resolve } from "node:path";
-import { cpSync } from "node:fs";
 import { finalizeChunk } from "./build-scope";
+import { copyExtensionStatic } from "./build-static";
 
 export default defineConfig({
+  define: { __EG_APP_RELAY__: "false" },
   build: {
     outDir: "dist",
     emptyOutDir: true,
@@ -31,7 +32,7 @@ export default defineConfig({
     {
       name: "copy-extension-static",
       closeBundle() {
-        cpSync(resolve(__dirname, "static"), resolve(__dirname, "dist"), { recursive: true });
+        copyExtensionStatic(resolve(__dirname, "static"), resolve(__dirname, "dist"), "chrome");
       }
     }
   ]

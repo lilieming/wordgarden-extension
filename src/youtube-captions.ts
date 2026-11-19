@@ -73,6 +73,16 @@ export function parseCaptionBody(body: string): CaptionSegment[] {
   return parseSecondsXml(trimmed).concat(parseMillisecondsXml(trimmed));
 }
 
+/**
+ * 页面侧桥跑在 MAIN world，那里没有 `chrome.i18n`，所以失败只带**码**不带话；
+ * 翻成哪国语言由面板那侧（isolated world，拿得到 i18n）决定。
+ */
+export class CaptionFailure extends Error {
+  constructor(readonly code: string, readonly detail = "") {
+    super(code);
+  }
+}
+
 export async function fetchCaptionSegments(baseUrl: string, fetcher: typeof fetch = fetch): Promise<CaptionSegment[]> {
   const jsonUrl = new URL(baseUrl);
   jsonUrl.searchParams.set("fmt", "json3");
@@ -86,6 +96,6 @@ export async function fetchCaptionSegments(baseUrl: string, fetcher: typeof fetc
     const segments = parseCaptionBody(body);
     if (segments.length > 0) return segments;
   }
-  if (lastStatus >= 400) throw new Error(`字幕请求失败 (${lastStatus})`);
+  if (lastStatus >= 400) throw new CaptionFailure("errCaptionHttp", String(lastStatus));
   return [];
 }

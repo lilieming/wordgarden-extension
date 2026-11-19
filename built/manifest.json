@@ -1,8 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "Word Garden Translator",
-  "version": "0.1.10",
-  "description": "Translate selected English text and save it to your local Word Garden.",
+  "name": "__MSG_extensionName__",
+  "version": "0.1.11",
+  "description": "__MSG_extensionDescription__",
+  "default_locale": "en",
   "permissions": [
     "storage",
     "contextMenus"
@@ -41,5 +42,11 @@
   "action": {
     "default_title": "Word Garden"
   },
-  "version_name": "0.1.10 · 只需 macOS App 后台服务"
+  "icons": {
+    "16": "icons/icon_16.png",
+    "32": "icons/icon_32.png",
+    "64": "icons/icon_64.png",
+    "128": "icons/icon_128.png"
+  },
+  "version_name": "0.1.11 · 仅对英文划词显示译按钮"
 }
