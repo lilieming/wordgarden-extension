@@ -1,34 +1,40 @@
-# Word Garden 浏览器扩展 v0.1.11
+# Word Garden v0.1.12
 
-这是 Word Garden 浏览器扩展的首个公开 Release，提供可直接下载的 Chrome 与 Safari 安装包。
+发布日期：2026-11-22
 
-发布日期：2026-11-19
+这次 Release 同时发布浏览器扩展和 Android 客户端。所有安装包都在本页下方下载。
 
-## 更新内容
+## Android
 
-- 划词翻译现在只在选中英文时显示“译”按钮；中文、日文、韩文、俄文、阿拉伯文等非英文文本不再弹出翻译入口。
-- 鼠标重新点选非英文内容时，之前残留的翻译面板会自动收起。
-- Chrome、Safari macOS、Safari iOS 三份构建使用同一个版本号和同一套界面文案。
+- 新增原生 Kotlin / Jetpack Compose 客户端，最低支持 Android 12（API 31）。
+- 私人花园、分级词书、词条卡片、爱心收藏、FSRS 复习和系统朗读均可在手机上使用。
+- 支持 English、简体中文、繁體中文、日本語、한국어界面，并可单独选择词书释义语言。
+- 词库保存在本机，API Key 使用 Android Keystore 加密。
+- 下载 `word-garden-android-0.1.12.apk` 后直接安装；Android 可能要求允许当前浏览器或文件管理器安装应用。
+
+## 浏览器扩展
+
+- Chrome、Safari macOS、Safari iOS 三份构建使用同一版本号。
+- Chrome 继续支持网页划词、右键翻译和 YouTube 字幕学词。
 
 ## 下载
 
-- `word-garden-extension-chrome-0.1.11.zip`：Chrome Manifest V3 扩展，可直接加载。
-- `word-garden-extension-safari-macos-0.1.11.zip`：Safari macOS 扩展构建目录。
-- `word-garden-extension-safari-ios-0.1.11.zip`：Safari iOS 扩展构建目录。
-- `SHA256SUMS.txt`：三个压缩包的 SHA-256 校验值。
+- `word-garden-android-0.1.12.apk`：Android 12 及以上。
+- `word-garden-extension-chrome-0.1.12.zip`：Chrome Manifest V3 扩展。
+- `word-garden-extension-safari-macos-0.1.12.zip`：Safari macOS 扩展构建目录。
+- `word-garden-extension-safari-ios-0.1.12.zip`：Safari iOS 扩展构建目录。
+- `SHA256SUMS.txt`：全部下载文件的 SHA-256 校验值。
 
-Safari 的常规安装方式仍是从 Word Garden App 内启用随附扩展；独立压缩包用于开发、审查和重新打包。
+## 安装
 
-## Chrome 安装
+### Android
 
-1. 解压 `word-garden-extension-chrome-0.1.11.zip`。
-2. 打开 Chrome 的 `chrome://extensions`，启用“开发者模式”。
+1. 下载 APK。
+2. 在系统提示中允许浏览器或文件管理器安装未知来源应用。
+3. 安装并打开 Word Garden。
+
+### Chrome
+
+1. 解压 `word-garden-extension-chrome-0.1.12.zip`。
+2. 打开 `chrome://extensions` 并启用“开发者模式”。
 3. 点击“加载已解压的扩展程序”，选择解压后的目录。
-4. 先启动 macOS 版 Word Garden App，再在扩展设置中连接 `http://127.0.0.1:3789`。
-
-## 功能
-
-- 任意网页划选英文，收集单词、原句、页面标题和来源。
-- 中文释义按“内置词典 → Chrome 内置翻译 → 大模型”的顺序回退。
-- Chrome 的 YouTube 页面提供字幕时间线与批量学词面板。
-- 数据只交给本机 App，不需要账号，也没有云端词库。
