@@ -10,13 +10,20 @@
 
 ## 安装
 
-1. 下载本仓库（Code → Download ZIP），解压
-2. Chrome 地址栏打开 `chrome://extensions`
-3. 打开右上角的「开发者模式」
-4. 点「加载已解压的扩展程序」，选择解压出来的 `built` 文件夹
-5. 点工具栏里的扩展图标打开设置，确认「本地 API 服务地址」是 `http://127.0.0.1:3789`，点「测试连接并保存」
+1. Chrome 地址栏打开 `chrome://extensions`，点亮右上角的「开发者模式」
+2. 把本仓库的 `built` 文件夹**直接拖进这个页面**，扩展就装好了
+   - 装了 Word Garden App 的话更省事：App 菜单栏「帮助 → 在访达中显示扩展文件夹」找到的是同一份，拖过去即可
+3. 点工具栏里的扩展图标打开设置，确认「本地 API 服务地址」是 `http://127.0.0.1:3789`，点「测试连接并保存」
 
 `built` 里就是可直接加载的成品，不需要 Node、不需要构建。
+
+## Android
+
+Android 12 及以上版本可直接下载 APK：
+
+https://github.com/lilieming/wordgarden-extension/releases/latest
+
+APK 和 Chrome、Safari 安装包一起发布在 GitHub Releases。Android 版包含本地词库、私人花园、分级词书、爱心收藏、FSRS 复习和系统朗读；数据保存在手机本机。
 
 ## 用法
 
