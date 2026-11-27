@@ -19,7 +19,10 @@
 
 ## Android
 
-Android 10 及以上版本可直接下载 APK（64 位 ARM 手机请下载 `word-garden-android-0.1.13-arm64-v8a.apk`）：
+Android 10 及以上版本可直接下载 APK：
+
+- 64 位 ARM 手机：`word-garden-android-0.1.13-arm64-v8a.apk`
+- 32 位 ARM 手机：`word-garden-android-0.1.13-armeabi-v7a.apk`
 
 https://github.com/lilieming/wordgarden-extension/releases/latest
 
